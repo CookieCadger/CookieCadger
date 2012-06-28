@@ -26,8 +26,13 @@ public class Sqlite3DB
 		Class.forName("org.sqlite.JDBC");
 
 		executionPath = System.getProperty("user.dir").replace("\\", "/");
-		dbInstance = DriverManager.getConnection("jdbc:sqlite:" + executionPath + "/session.db");
+		dbInstance = DriverManager.getConnection("jdbc:sqlite:" + executionPath + "/session.sqlite");
 		
+		initTables();
+	}
+	
+	public void initTables() throws SQLException
+	{
 		// Clear all tables
 	    Statement stat = dbInstance.createStatement();
 	    stat.executeUpdate("drop table if exists requests;");
@@ -180,6 +185,18 @@ public class Sqlite3DB
 	    return value;
 	}
 	
+	public String[] getMacs() throws SQLException
+	{
+		Statement stat = dbInstance.createStatement();
+	    ResultSet rs = stat.executeQuery("select mac from clients where 1;");
+
+	    String[] value = toStringArray(rs, "mac");
+	    rs.close();
+	    stat.close();
+	    
+	    return value;
+	}
+	
 	public String[] getDomains(String mac) throws SQLException
 	{
 		Statement stat = dbInstance.createStatement();
@@ -236,7 +253,7 @@ public class Sqlite3DB
 		dbInstance.close();
 	}
 	
-	private void saveDatabase()
+	public void saveDatabase()
 	{	
 		JFileChooser fc = new JFileChooser();
 		FileFilter pcapFilter = new FileNameExtensionFilter("*.sqlite", "sqlite");
@@ -248,7 +265,34 @@ public class Sqlite3DB
         if (returnVal == JFileChooser.APPROVE_OPTION)
         {
             File fileToSaveTo = fc.getSelectedFile();
-            File fileToSaveFrom = new File(executionPath + "/session.db");
+            if(!fileToSaveTo.getPath().toLowerCase().endsWith(".sqlite") && fc.getFileFilter().equals(pcapFilter))
+            {
+            	fileToSaveTo = new File(fileToSaveTo.getPath() + ".sqlite");
+            }
+            File fileToSaveFrom = new File(executionPath + "/session.sqlite");
+            
+            try {
+				copy(fileToSaveFrom, fileToSaveTo);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
+	}
+	
+	public void openDatabase()
+	{	
+		JFileChooser fc = new JFileChooser();
+		FileFilter pcapFilter = new FileNameExtensionFilter("*.sqlite", "sqlite");
+		fc.addChoosableFileFilter(pcapFilter);
+		fc.setFileFilter(pcapFilter);
+
+		int returnVal = fc.showOpenDialog(null);
+
+        if (returnVal == JFileChooser.APPROVE_OPTION)
+        {
+        	File fileToSaveFrom = fc.getSelectedFile();
+            File fileToSaveTo = new File(executionPath + "/session.sqlite");
             
             try {
 				copy(fileToSaveFrom, fileToSaveTo);

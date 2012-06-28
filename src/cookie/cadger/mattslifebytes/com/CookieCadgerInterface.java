@@ -10,6 +10,9 @@
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution. 
+ * 3. By using this software, you agree to provide the Software Creator (Matthew
+ *    Sullivan) exactly one drink of his choice under $10 USD in value if he
+ *    requests it of you.
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -84,6 +87,10 @@ import java.awt.event.WindowEvent;
 import javax.swing.JFileChooser;
 import javax.swing.ListSelectionModel;
 import javax.swing.UIManager;
+import javax.swing.JMenuBar;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JSeparator;
 
 public class CookieCadgerInterface extends JFrame
 {
@@ -343,6 +350,20 @@ public class CookieCadgerInterface extends JFrame
 		SetCaptureButtonText();
 	}
 	
+	private void ResetSession()
+	{
+		try {
+			dbInstance.initTables();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		requestListModel.clear();
+		domainListModel.clear();
+		macListModel.clear();
+	}
+	
 	private void SetCaptureButtonText()
 	{
 		int selection = ((JComboBox)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
@@ -600,6 +621,37 @@ public class CookieCadgerInterface extends JFrame
         driver.get("http://" + domain + uri);
 	}
 	
+	private void PrepareToCloseApplication()
+	{
+		// Get the WebDriver fully unloaded
+		try
+		{
+			driver.close();
+		}
+		catch (Exception ex)
+		{}
+		finally
+		{
+			driver = null;
+		}
+		
+		try
+		{
+			for (Process p : deviceCaptureProcess)
+			{
+				if(p != null)
+					p.destroy();
+			}
+			
+			if(dbInstance != null)
+				dbInstance.closeDatabase();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
 	public CookieCadgerInterface() throws Exception
 	{
 		setResizable(false);
@@ -608,41 +660,153 @@ public class CookieCadgerInterface extends JFrame
 			public void windowClosing(WindowEvent e)
 			{
 				super.windowClosing(e);
-				
-				// Get the WebDriver fully unloaded
-				try
-				{
-					driver.close();
-				}
-				catch (Exception ex)
-				{}
-				finally
-				{
-					driver = null;
-				}
-				
-				try
-				{
-					for (Process p : deviceCaptureProcess)
-					{
-						if(p != null)
-							p.destroy();
-					}
-					
-					if(dbInstance != null)
-						dbInstance.closeDatabase();
-				}
-				catch (Exception ex)
-				{
-					ex.printStackTrace();
-				}
+				PrepareToCloseApplication();
 			}
 		});	    
 		dbInstance = new Sqlite3DB();
 		
 		setTitle("Cookie Cadger");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 950, 650);
+		setBounds(100, 100, 950, 670);
+		
+		JMenuBar menuBar = new JMenuBar();
+		setJMenuBar(menuBar);
+		
+		JMenu mnFile = new JMenu("File");
+		menuBar.add(mnFile);
+		
+		JMenuItem mntmStartNewSession = new JMenuItem("Start New Session");
+		mntmStartNewSession.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				ResetSession();
+			}
+		});
+		mnFile.add(mntmStartNewSession);
+		
+		JSeparator separator = new JSeparator();
+		mnFile.add(separator);
+		
+		JMenuItem mntmOpenACapture = new JMenuItem("Open a Capture File (*.pcap)");
+		mntmOpenACapture.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				Thread captureThread = new Thread(new Runnable()
+				{
+					public void run()
+					{
+						JFileChooser fc = new JFileChooser();
+						FileFilter pcapFilter = new FileNameExtensionFilter("*.pcap | *.cap", "pcap", "cap");
+						fc.addChoosableFileFilter(pcapFilter);
+						fc.setFileFilter(pcapFilter);
+
+						int returnVal = fc.showOpenDialog(contentPane);
+
+				        if (returnVal == JFileChooser.APPROVE_OPTION)
+				        {
+				            File file = fc.getSelectedFile();
+				            JOptionPane.showMessageDialog(contentPane, "This process could take some time, please be patient.");
+						            
+							try {
+								StartCapture(-1, file.getAbsolutePath());
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+				        }
+					}
+				});
+					
+				captureThread.start();
+			}
+		});
+		mnFile.add(mntmOpenACapture);
+		
+		mnFile.add(new JSeparator());
+		
+		JMenuItem mntmSaveSession = new JMenuItem("Save Session");
+		mntmSaveSession.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				dbInstance.saveDatabase();
+			}
+		});
+		mnFile.add(mntmSaveSession);
+		
+		JMenuItem mntmLoadSession = new JMenuItem("Load Session");
+		mntmLoadSession.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				ResetSession();
+				dbInstance.openDatabase();
+				try {
+					for (String s : dbInstance.getMacs())
+					{
+					      macListModel.addElement(s);
+					}
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
+		mnFile.add(mntmLoadSession);
+		mnFile.add(new JSeparator());
+		
+		JMenuItem mntmExit = new JMenuItem("Exit");
+		mntmExit.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				PrepareToCloseApplication();
+				dispose();
+			}
+		});
+		mnFile.add(mntmExit);
+		
+		JMenu mnEdit = new JMenu("Edit");
+		menuBar.add(mnEdit);
+		
+		JMenuItem mntmCopySelectedRequest = new JMenuItem("Copy Selected Request to Clipboard");
+		mntmCopySelectedRequest.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(requestList.isSelectionEmpty())
+				{
+					JOptionPane.showMessageDialog(contentPane, "You must first select a request.");
+				}
+				else
+				{
+					Toolkit toolkit = Toolkit.getDefaultToolkit();
+					Clipboard clipboard = toolkit.getSystemClipboard();
+					StringSelection strSel = new StringSelection((String)requestList.getSelectedValue());
+					clipboard.setContents(strSel, null);
+				}
+			}
+		});
+		mnEdit.add(mntmCopySelectedRequest);
+		
+		JMenuItem mntmCopyAllRequests = new JMenuItem("Copy All Requests to Clipboard");
+		mntmCopyAllRequests.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String allRequests = "";
+				
+				for (int i = 0; i < requestListModel.getSize(); i++)
+				{
+					allRequests = allRequests + requestListModel.get(i) + "\n";
+				}
+				
+				Toolkit toolkit = Toolkit.getDefaultToolkit();
+				Clipboard clipboard = toolkit.getSystemClipboard();
+				StringSelection strSel = new StringSelection(allRequests);
+				clipboard.setContents(strSel, null);	
+			}
+		});
+		mnEdit.add(mntmCopyAllRequests);
+		
+		JMenu mnHelp = new JMenu("Help");
+		menuBar.add(mnHelp);
+		
+		JMenuItem mntmAbout = new JMenuItem("About Cookie Cadger");
+		mntmAbout.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				//About here
+			}
+		});
+		mnHelp.add(mntmAbout);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -717,12 +881,12 @@ public class CookieCadgerInterface extends JFrame
 		JButton btnMonitorOnSelected = new JButton("Select An Interface");
 		btnMonitorOnSelected.setEnabled(false);
 		btnMonitorOnSelected.setName("btnMonitorOnSelected");
-		btnMonitorOnSelected.setBounds(510, 0, 240, 25);
+		btnMonitorOnSelected.setBounds(681, 14, 240, 25);
 		contentPane.add(btnMonitorOnSelected);
 		
 		JComboBox interfaceListComboBox = new JComboBox();
 		interfaceListComboBox.setName("interfaceListComboBox");
-		interfaceListComboBox.setBounds(28, 14, 460, 24);
+		interfaceListComboBox.setBounds(28, 14, 626, 24);
 		contentPane.add(interfaceListComboBox);
 		
 		interfaceListComboBox.setModel(interfaceListModel);
@@ -779,7 +943,7 @@ public class CookieCadgerInterface extends JFrame
 		domainList.setModel(domainListModelSorted);
 		
 		JScrollPane requestListScrollPanel = new JScrollPane();
-		requestListScrollPanel.setBounds(414, 62, 509, 308);
+		requestListScrollPanel.setBounds(414, 62, 509, 348);
 		contentPane.add(requestListScrollPanel);
 		
 		requestList = new ZebraJList();
@@ -833,7 +997,7 @@ public class CookieCadgerInterface extends JFrame
 				}
 			}
 		});
-		btnLoadDomainCookies.setBounds(414, 381, 252, 25);
+		btnLoadDomainCookies.setBounds(414, 417, 252, 25);
 		contentPane.add(btnLoadDomainCookies);
 		
 		JButton btnReplayRequest = new JButton("Replay This Request");
@@ -869,16 +1033,8 @@ public class CookieCadgerInterface extends JFrame
 				}
 			}
 		});
-		btnReplayRequest.setBounds(670, 381, 252, 25);
+		btnReplayRequest.setBounds(670, 417, 252, 25);
 		contentPane.add(btnReplayRequest);
-		
-		JButton btnCopyInfo = new JButton("Copy Request To Clipboard");
-		btnCopyInfo.setBounds(414, 418, 252, 25);
-		contentPane.add(btnCopyInfo);
-		
-		JButton btnCopyAllRequests = new JButton("Copy All Requests to Clipboard");
-		btnCopyAllRequests.setBounds(670, 418, 252, 25);
-		contentPane.add(btnCopyAllRequests);
 		
 		informationScrollPane = new JScrollPane();
 		informationScrollPane.setBounds(28, 450, 895, 75);
@@ -891,42 +1047,6 @@ public class CookieCadgerInterface extends JFrame
 		txtInformation.setLineWrap(true);
 		txtInformation.setEditable(false);
 		informationScrollPane.setViewportView(txtInformation);
-		
-		JButton btnOpenPcap = new JButton("Open a Capture File (*.pcap)");
-		btnOpenPcap.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0)
-			{            
-				Thread captureThread = new Thread(new Runnable()
-				{
-					public void run()
-					{
-						JFileChooser fc = new JFileChooser();
-						FileFilter pcapFilter = new FileNameExtensionFilter("*.pcap | *.cap", "pcap", "cap");
-						fc.addChoosableFileFilter(pcapFilter);
-						fc.setFileFilter(pcapFilter);
-
-						int returnVal = fc.showOpenDialog(contentPane);
-
-				        if (returnVal == JFileChooser.APPROVE_OPTION)
-				        {
-				            File file = fc.getSelectedFile();
-				            JOptionPane.showMessageDialog(contentPane, "This process could take some time, please be patient.");
-						            
-							try {
-								StartCapture(-1, file.getAbsolutePath());
-							} catch (IOException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-				        }
-					}
-				});
-					
-				captureThread.start();
-			}
-		});
-		btnOpenPcap.setBounds(510, 30, 240, 25);
-		contentPane.add(btnOpenPcap);
 		
 		/*
 		 // MANUAL START OF CAPTURE.... HORRIBLE TODO
@@ -989,40 +1109,6 @@ public class CookieCadgerInterface extends JFrame
 					
 					captureThread.start();
 				}
-			}
-		});
-		
-		btnCopyInfo.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0)
-			{
-				if(requestList.isSelectionEmpty())
-				{
-					JOptionPane.showMessageDialog(contentPane, "You must first select a request.");
-				}
-				else
-				{
-					Toolkit toolkit = Toolkit.getDefaultToolkit();
-					Clipboard clipboard = toolkit.getSystemClipboard();
-					StringSelection strSel = new StringSelection((String)requestList.getSelectedValue());
-					clipboard.setContents(strSel, null);
-				}
-			}
-		});
-		
-		btnCopyAllRequests.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e)
-			{
-				String allRequests = "";
-				
-				for (int i = 0; i < requestListModel.getSize(); i++)
-				{
-					allRequests = allRequests + requestListModel.get(i) + "\n";
-				}
-				
-				Toolkit toolkit = Toolkit.getDefaultToolkit();
-				Clipboard clipboard = toolkit.getSystemClipboard();
-				StringSelection strSel = new StringSelection(allRequests);
-				clipboard.setContents(strSel, null);
 			}
 		});
 	}
