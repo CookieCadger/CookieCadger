@@ -123,6 +123,21 @@ public class CookieCadgerInterface extends JFrame
 		Date capStart = new Date();
 		ArrayList<String> nonTabbedOutput = new ArrayList<String>();
 		
+		// Get tshark location by checking likely Linux path
+		File tshark;
+		String pathToTshark = "";
+		String[] pathCheckStrings = { "/usr/sbin/tshark", "C:\\Program Files\\Wireshark\\tshark.exe", "C:\\Program Files (x86)\\Wireshark\\tshark.exe" };
+		
+		for(String path : pathCheckStrings)
+		{
+			if(new File(path).exists())
+			{
+				Console("tshark located at " + path, true);
+				pathToTshark = path;
+				break;
+			}
+		}
+		
 		if(pcapFile.isEmpty())
 		{
 			List<PcapIf> alldevs = new ArrayList<PcapIf>(); // Will be filled with NICs
@@ -132,7 +147,7 @@ public class CookieCadgerInterface extends JFrame
 			device = alldevs.get(ethDevNumber);
 			
 			Console("Opening '" + device.getName() + "' for traffic capture.", true);
-			pb = new ProcessBuilder(new String[] { "tshark", "-i", device.getName(), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
+			pb = new ProcessBuilder(new String[] { pathToTshark, "-i", device.getName(), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
 			pb.redirectErrorStream(true);
 			deviceCaptureProcess[ethDevNumber] = pb.start();
 			pw = new ProcessWatcher(deviceCaptureProcess[ethDevNumber]);
@@ -141,7 +156,7 @@ public class CookieCadgerInterface extends JFrame
 		else
 		{
 			Console("Opening '" + pcapFile + "' for traffic capture.", true);
-			pb = new ProcessBuilder(new String[] { "tshark", "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
+			pb = new ProcessBuilder(new String[] { pathToTshark, "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
 			pb.redirectErrorStream(true);
 			proc = pb.start();
 			pw = new ProcessWatcher(proc);
@@ -729,7 +744,7 @@ public class CookieCadgerInterface extends JFrame
 		if (r == Pcap.NOT_OK || alldevs.isEmpty())
 		{
 			if(errbuf.toString().isEmpty())
-				JOptionPane.showMessageDialog(null, "Can't read list of devices. Program must run as root to be able to iterate capture devices.");
+				JOptionPane.showMessageDialog(null, "Can't read list of devices. Program must run as root/Administrator to be able to iterate capture devices.\nYou will still be able to analyze *.pcap files or load a previous session.");
 			else
 				JOptionPane.showMessageDialog(null, "Can't read list of devices, error is: " + errbuf.toString());
 		}

@@ -5,7 +5,7 @@
 	<classpathentry kind="lib" path="dependencies/jnetpcap.jar" sourcepath="dependencies/jnetpcap.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/Cookie Cadger Interface/dependencies/jnetpcap.jar!/"/>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="Cookie Cadger Interface/jnetpcap"/>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="CookieCadger/jnetpcap"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="dependencies/selenium-java-2.24.1.jar" sourcepath="dependencies/selenium-java-2.24.1-srcs.jar">
