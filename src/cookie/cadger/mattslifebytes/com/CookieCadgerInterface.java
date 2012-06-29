@@ -667,7 +667,7 @@ public class CookieCadgerInterface extends JFrame
 		
 		setTitle("Cookie Cadger");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 950, 670);
+		setBounds(100, 100, 950, 680);
 		
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -676,136 +676,40 @@ public class CookieCadgerInterface extends JFrame
 		menuBar.add(mnFile);
 		
 		JMenuItem mntmStartNewSession = new JMenuItem("Start New Session");
-		mntmStartNewSession.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				ResetSession();
-			}
-		});
 		mnFile.add(mntmStartNewSession);
 		
 		JSeparator separator = new JSeparator();
 		mnFile.add(separator);
 		
 		JMenuItem mntmOpenACapture = new JMenuItem("Open a Capture File (*.pcap)");
-		mntmOpenACapture.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				Thread captureThread = new Thread(new Runnable()
-				{
-					public void run()
-					{
-						JFileChooser fc = new JFileChooser();
-						FileFilter pcapFilter = new FileNameExtensionFilter("*.pcap | *.cap", "pcap", "cap");
-						fc.addChoosableFileFilter(pcapFilter);
-						fc.setFileFilter(pcapFilter);
-
-						int returnVal = fc.showOpenDialog(contentPane);
-
-				        if (returnVal == JFileChooser.APPROVE_OPTION)
-				        {
-				            File file = fc.getSelectedFile();
-				            JOptionPane.showMessageDialog(contentPane, "This process could take some time, please be patient.");
-						            
-							try {
-								StartCapture(-1, file.getAbsolutePath());
-							} catch (IOException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-				        }
-					}
-				});
-					
-				captureThread.start();
-			}
-		});
 		mnFile.add(mntmOpenACapture);
 		
 		mnFile.add(new JSeparator());
 		
 		JMenuItem mntmSaveSession = new JMenuItem("Save Session");
-		mntmSaveSession.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				dbInstance.saveDatabase();
-			}
-		});
 		mnFile.add(mntmSaveSession);
 		
 		JMenuItem mntmLoadSession = new JMenuItem("Load Session");
-		mntmLoadSession.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				ResetSession();
-				dbInstance.openDatabase();
-				try {
-					for (String s : dbInstance.getMacs())
-					{
-					      macListModel.addElement(s);
-					}
-				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		});
 		mnFile.add(mntmLoadSession);
+		
 		mnFile.add(new JSeparator());
 		
 		JMenuItem mntmExit = new JMenuItem("Exit");
-		mntmExit.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				PrepareToCloseApplication();
-				dispose();
-			}
-		});
 		mnFile.add(mntmExit);
 		
 		JMenu mnEdit = new JMenu("Edit");
 		menuBar.add(mnEdit);
 		
 		JMenuItem mntmCopySelectedRequest = new JMenuItem("Copy Selected Request to Clipboard");
-		mntmCopySelectedRequest.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				if(requestList.isSelectionEmpty())
-				{
-					JOptionPane.showMessageDialog(contentPane, "You must first select a request.");
-				}
-				else
-				{
-					Toolkit toolkit = Toolkit.getDefaultToolkit();
-					Clipboard clipboard = toolkit.getSystemClipboard();
-					StringSelection strSel = new StringSelection((String)requestList.getSelectedValue());
-					clipboard.setContents(strSel, null);
-				}
-			}
-		});
 		mnEdit.add(mntmCopySelectedRequest);
 		
 		JMenuItem mntmCopyAllRequests = new JMenuItem("Copy All Requests to Clipboard");
-		mntmCopyAllRequests.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				String allRequests = "";
-				
-				for (int i = 0; i < requestListModel.getSize(); i++)
-				{
-					allRequests = allRequests + requestListModel.get(i) + "\n";
-				}
-				
-				Toolkit toolkit = Toolkit.getDefaultToolkit();
-				Clipboard clipboard = toolkit.getSystemClipboard();
-				StringSelection strSel = new StringSelection(allRequests);
-				clipboard.setContents(strSel, null);	
-			}
-		});
 		mnEdit.add(mntmCopyAllRequests);
 		
 		JMenu mnHelp = new JMenu("Help");
 		menuBar.add(mnHelp);
 		
 		JMenuItem mntmAbout = new JMenuItem("About Cookie Cadger");
-		mntmAbout.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				//About here
-			}
-		});
 		mnHelp.add(mntmAbout);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -966,6 +870,168 @@ public class CookieCadgerInterface extends JFrame
 		requestListScrollPanel.setViewportView(requestList);
 		
 		JButton btnLoadDomainCookies = new JButton("Load Domain Cookies");
+		btnLoadDomainCookies.setBounds(414, 417, 252, 25);
+		contentPane.add(btnLoadDomainCookies);
+		
+		JButton btnReplayRequest = new JButton("Replay This Request");
+		btnReplayRequest.setBounds(670, 417, 252, 25);
+		contentPane.add(btnReplayRequest);
+		
+		informationScrollPane = new JScrollPane();
+		informationScrollPane.setBounds(28, 450, 895, 75);
+		contentPane.add(informationScrollPane);
+		
+		txtInformation = new JTextArea();
+		txtInformation.setBackground(UIManager.getColor("Panel.background"));
+		txtInformation.setFont(new Font("Dialog", Font.BOLD, 14));
+		txtInformation.setText("Cookie Cadger\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the FreeBSD license.");
+		txtInformation.setLineWrap(true);
+		txtInformation.setEditable(false);
+		informationScrollPane.setViewportView(txtInformation);
+		
+		/*
+		 * Create and associate the ActionListeners for all objects
+		 */
+		
+		mntmStartNewSession.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				ResetSession();
+			}
+		});
+
+		mntmOpenACapture.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				Thread captureThread = new Thread(new Runnable()
+				{
+					public void run()
+					{
+						JFileChooser fc = new JFileChooser();
+						FileFilter pcapFilter = new FileNameExtensionFilter("*.pcap | *.cap", "pcap", "cap");
+						fc.addChoosableFileFilter(pcapFilter);
+						fc.setFileFilter(pcapFilter);
+
+						int returnVal = fc.showOpenDialog(contentPane);
+
+				        if (returnVal == JFileChooser.APPROVE_OPTION)
+				        {
+				            File file = fc.getSelectedFile();
+				            JOptionPane.showMessageDialog(null, "This process could take some time, please be patient.");
+						            
+							try {
+								StartCapture(-1, file.getAbsolutePath());
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+				        }
+					}
+				});
+					
+				captureThread.start();
+			}
+		});
+
+
+		mntmSaveSession.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				dbInstance.saveDatabase();
+			}
+		});
+
+
+		mntmLoadSession.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				ResetSession();
+				dbInstance.openDatabase();
+				try {
+					for (String s : dbInstance.getMacs())
+					{
+					      macListModel.addElement(s);
+					}
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
+
+
+		mntmExit.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				PrepareToCloseApplication();
+				dispose();
+			}
+		});
+
+
+		mntmCopySelectedRequest.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(requestList.isSelectionEmpty())
+				{
+					JOptionPane.showMessageDialog(null, "You must first select a request.");
+				}
+				else
+				{
+					Toolkit toolkit = Toolkit.getDefaultToolkit();
+					Clipboard clipboard = toolkit.getSystemClipboard();
+					StringSelection strSel = new StringSelection((String)requestList.getSelectedValue());
+					clipboard.setContents(strSel, null);
+				}
+			}
+		});
+
+
+		mntmCopyAllRequests.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String allRequests = "";
+				
+				for (int i = 0; i < requestListModel.getSize(); i++)
+				{
+					allRequests = allRequests + requestListModel.get(i) + "\n";
+				}
+				
+				Toolkit toolkit = Toolkit.getDefaultToolkit();
+				Clipboard clipboard = toolkit.getSystemClipboard();
+				StringSelection strSel = new StringSelection(allRequests);
+				clipboard.setContents(strSel, null);	
+			}
+		});
+
+
+		mntmAbout.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e)
+			{
+				JOptionPane.showMessageDialog(null, "Cookie Cadger\n\n" +
+						"Copyright (c) 2012, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>\n" +
+						"All rights reserved.\n" +
+						"\n" +
+						"Redistribution and use in source and binary forms, with or without\n" +
+						"modification, are permitted provided that the following conditions are met: \n" +
+						"\n" +
+						"1. Redistributions of source code must retain the above copyright notice, this\n" +
+						"   list of conditions and the following disclaimer. \n" +
+						"2. Redistributions in binary form must reproduce the above copyright notice,\n" +
+						"   this list of conditions and the following disclaimer in the documentation\n" +
+						"   and/or other materials provided with the distribution. \n" +
+						"3. By using this software, you agree to provide the Software Creator (Matthew\n" +
+						"   Sullivan) exactly one drink of his choice under $10 USD in value if he\n" +
+						"   requests it of you.\n" +
+						"\n" +
+						"THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND\n" +
+						"ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED\n" +
+						"WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\n" +
+						"DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR\n" +
+						"ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES\n" +
+						"(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;\n" +
+						"LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND\n" +
+						"ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n" +
+						"(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\n" +
+						"SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+						);
+			}
+		});
+
+
 		btnLoadDomainCookies.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0)
 			{
@@ -997,10 +1063,8 @@ public class CookieCadgerInterface extends JFrame
 				}
 			}
 		});
-		btnLoadDomainCookies.setBounds(414, 417, 252, 25);
-		contentPane.add(btnLoadDomainCookies);
-		
-		JButton btnReplayRequest = new JButton("Replay This Request");
+
+
 		btnReplayRequest.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0)
 			{
@@ -1013,7 +1077,6 @@ public class CookieCadgerInterface extends JFrame
 							String request = (String)requestList.getSelectedValue();
 							int requestID = Integer.parseInt(request.substring(1, request.indexOf(":")).trim());
 							
-							//uri VARCHAR, useragent VARCHAR, referrer VARCHAR, cookies VARCHAR, domain_id INTEGER, client_id INTEGER);");
 							try {
 								String domain = (String)domainList.getSelectedValue();
 								String uri = dbInstance.getStringValue("requests", "uri", "id", Integer.toString(requestID));
@@ -1033,52 +1096,16 @@ public class CookieCadgerInterface extends JFrame
 				}
 			}
 		});
-		btnReplayRequest.setBounds(670, 417, 252, 25);
-		contentPane.add(btnReplayRequest);
-		
-		informationScrollPane = new JScrollPane();
-		informationScrollPane.setBounds(28, 450, 895, 75);
-		contentPane.add(informationScrollPane);
-		
-		txtInformation = new JTextArea();
-		txtInformation.setBackground(UIManager.getColor("Panel.background"));
-		txtInformation.setFont(new Font("Dialog", Font.BOLD, 14));
-		txtInformation.setText("Cookie Cadger\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the FreeBSD license.");
-		txtInformation.setLineWrap(true);
-		txtInformation.setEditable(false);
-		informationScrollPane.setViewportView(txtInformation);
-		
-		/*
-		 // MANUAL START OF CAPTURE.... HORRIBLE TODO
 
-		System.out.println("starting fork...");
-		final CookieCadgerInterface me = this;
-		Thread captureThread = new Thread(new Runnable() {
-			public void run()
-			{
-				try {
-					System.out.println("capture call...");
-					me.Capture(4);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		});
-		
-		System.out.println("starting thread...");
-		captureThread.start();
-		*/
-		
-		CreateComponentMap();
-		
+
 		interfaceListComboBox.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e)
 			{
 				SetCaptureButtonText();
 			}
 		});
-		
+
+
 		btnMonitorOnSelected.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e)
 			{
@@ -1111,6 +1138,9 @@ public class CookieCadgerInterface extends JFrame
 				}
 			}
 		});
+		
+		// Finally, associate all components with the HashMap
+		CreateComponentMap();
 	}
 	
 	private void Console(String text, boolean bAutoScroll)
@@ -1118,7 +1148,7 @@ public class CookieCadgerInterface extends JFrame
 		if(txtConsole.getText().isEmpty())
 			txtConsole.setText(text);
 		else
-			txtConsole.setText(txtConsole.getText() + "\n" + text);
+			txtConsole.append("\n" + text);
 		
 		if(bAutoScroll)
 			txtConsole.setCaretPosition(txtConsole.getDocument().getLength());

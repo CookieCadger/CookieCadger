@@ -28,6 +28,10 @@ public class Sqlite3DB
 		executionPath = System.getProperty("user.dir").replace("\\", "/");
 		dbInstance = DriverManager.getConnection("jdbc:sqlite:" + executionPath + "/session.sqlite");
 		
+		// Cleans up the temporary DB on exit
+		File sessionDB = new File(executionPath + "/session.sqlite");
+		sessionDB.deleteOnExit();
+		
 		initTables();
 	}
 	
