@@ -56,8 +56,6 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import org.jnetpcap.*;
-
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
@@ -102,11 +100,11 @@ public class CookieCadgerInterface extends JFrame
 	private ZebraJList macList, domainList, requestList;
 	private JTextArea txtConsole, txtInformation;
 	private JScrollPane consoleScrollPane, informationScrollPane;
-	private int deviceCount = 0;
-	private Boolean[] bCapturing;
-	private String[] deviceName;
-	private String[] deviceDescription;
-	private Process[] deviceCaptureProcess;
+	private String pathToTshark;
+	private ArrayList<Boolean> bCapturing = new ArrayList<Boolean>();
+	private ArrayList<String> deviceName = new ArrayList<String>();
+	private ArrayList<String> deviceDescription = new ArrayList<String>();
+	private ArrayList<Process> deviceCaptureProcess = new ArrayList<Process>();
 	private HashMap componentMap; // Cheers to Jesse Strickland (stackoverflow.com/questions/4958600/get-a-swing-component-by-name)
 	
 	private static WebDriver driver = null;
@@ -119,39 +117,17 @@ public class CookieCadgerInterface extends JFrame
 		ProcessWatcher pw = null;
 		InputStream is = null;
 		
-		PcapIf device = null;
 		Date capStart = new Date();
 		ArrayList<String> nonTabbedOutput = new ArrayList<String>();
 		
-		// Get tshark location by checking likely Linux path
-		File tshark;
-		String pathToTshark = "";
-		String[] pathCheckStrings = { "/usr/sbin/tshark", "C:\\Program Files\\Wireshark\\tshark.exe", "C:\\Program Files (x86)\\Wireshark\\tshark.exe" };
-		
-		for(String path : pathCheckStrings)
-		{
-			if(new File(path).exists())
-			{
-				Console("tshark located at " + path, true);
-				pathToTshark = path;
-				break;
-			}
-		}
-		
 		if(pcapFile.isEmpty())
-		{
-			List<PcapIf> alldevs = new ArrayList<PcapIf>(); // Will be filled with NICs
-			StringBuilder errbuf = new StringBuilder();     // For any error msgs
-			
-			Pcap.findAllDevs(alldevs, errbuf);
-			device = alldevs.get(ethDevNumber);
-			
-			Console("Opening '" + device.getName() + "' for traffic capture.", true);
-			pb = new ProcessBuilder(new String[] { pathToTshark, "-i", device.getName(), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
+		{			
+			Console("Opening '" + deviceName.get(ethDevNumber) + "' for traffic capture.", true);
+			pb = new ProcessBuilder(new String[] { pathToTshark, "-i", deviceName.get(ethDevNumber), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
 			pb.redirectErrorStream(true);
-			deviceCaptureProcess[ethDevNumber] = pb.start();
-			pw = new ProcessWatcher(deviceCaptureProcess[ethDevNumber]);
-			is = deviceCaptureProcess[ethDevNumber].getInputStream();
+			deviceCaptureProcess.set(ethDevNumber, pb.start());
+			pw = new ProcessWatcher(deviceCaptureProcess.get(ethDevNumber));
+			is = deviceCaptureProcess.get(ethDevNumber).getInputStream();
 		}
 		else
 		{
@@ -293,8 +269,8 @@ public class CookieCadgerInterface extends JFrame
 			}
 			else
 			{
-				if(deviceCaptureProcess[ethDevNumber] != null)
-					deviceCaptureProcess[ethDevNumber].destroy();
+				if(deviceCaptureProcess.get(ethDevNumber) != null)
+					deviceCaptureProcess.get(ethDevNumber).destroy();
 			}
 		}
 		finally
@@ -315,24 +291,24 @@ public class CookieCadgerInterface extends JFrame
 		
 		if(pcapFile.isEmpty() && runTimeInSeconds <= 20)
 		{
-			Console(device.getName() + ": " + "============================================================================", true);
-			Console(device.getName() + ": " + "Start of diagnostic information for interface '" + device.getName() + "'", true);
-			Console(device.getName() + ": " + "============================================================================", true);
+			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================", true);
+			Console(deviceName.get(ethDevNumber) + ": " + "Start of diagnostic information for interface '" + deviceName.get(ethDevNumber) + "'", true);
+			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================", true);
 			
 			for (String output : nonTabbedOutput)
 			{
-				Console(device.getName() + ": " + output, true);				
+				Console(deviceName.get(ethDevNumber) + ": " + output, true);				
 			}
 			
-			Console(device.getName() + ": " + "============================================================================", true);
-			Console(device.getName() + ": " + "Potential error detected! Capture stopped / died in " + Integer.toString(runTimeInSeconds) + " seconds.", true);
-			Console(device.getName() + ": " + "All messages from the 'tshark' program have been printed above to assist you in solving any errors.", true);
-			Console(device.getName() + ": " + "============================================================================", true);
+			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================", true);
+			Console(deviceName.get(ethDevNumber) + ": " + "Potential error detected! Capture stopped / died in " + Integer.toString(runTimeInSeconds) + " seconds.", true);
+			Console(deviceName.get(ethDevNumber) + ": " + "All messages from the 'tshark' program have been printed above to assist you in solving any errors.", true);
+			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================", true);
 		}
 		else
 		{
 			if(pcapFile.isEmpty())
-				Console("'" + device.getName() + "' has been closed and is finished with traffic capture. Capture duration: " + Integer.toString(runTimeInSeconds) + " seconds.", true);
+				Console("'" + deviceName.get(ethDevNumber) + "' has been closed and is finished with traffic capture. Capture duration: " + Integer.toString(runTimeInSeconds) + " seconds.", true);
 			else
 				Console("'" + pcapFile + "' has finished processing. Processing duration: " + Integer.toString(runTimeInSeconds) + " seconds.", true);
 		}
@@ -341,15 +317,15 @@ public class CookieCadgerInterface extends JFrame
 	private void StopCapture(int ethDevNumber)
 	{
 		interfaceListModel.removeElementAt(ethDevNumber);
-		interfaceListModel.insertElementAt(deviceName[ethDevNumber] + " [" + deviceDescription[ethDevNumber] + "]", ethDevNumber);
+		interfaceListModel.insertElementAt(deviceName.get(ethDevNumber) + " [" + deviceDescription.get(ethDevNumber) + "]", ethDevNumber);
 		((JComboBox)GetComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
 
-		if (deviceCaptureProcess[ethDevNumber] != null)
+		if (deviceCaptureProcess.get(ethDevNumber) != null)
 		{
-			deviceCaptureProcess[ethDevNumber].destroy();
+			deviceCaptureProcess.get(ethDevNumber).destroy();
 		}
 		
-		bCapturing[ethDevNumber] = false;
+		bCapturing.set(ethDevNumber, false);
 		
 		SetCaptureButtonText();
 	}
@@ -357,10 +333,10 @@ public class CookieCadgerInterface extends JFrame
 	private void PrepCapture(int ethDevNumber)
 	{
 		interfaceListModel.removeElementAt(ethDevNumber);
-		interfaceListModel.insertElementAt(deviceName[ethDevNumber] + " [" + deviceDescription[ethDevNumber] + "] (CURRENTLY CAPTURING)", ethDevNumber);
+		interfaceListModel.insertElementAt(deviceName.get(ethDevNumber) + " [" + deviceDescription.get(ethDevNumber) + "] (CURRENTLY CAPTURING)", ethDevNumber);
 		((JComboBox)GetComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
 		
-		bCapturing[ethDevNumber] = true;
+		bCapturing.set(ethDevNumber, true);
 		
 		SetCaptureButtonText();
 	}
@@ -382,18 +358,23 @@ public class CookieCadgerInterface extends JFrame
 	private void SetCaptureButtonText()
 	{
 		int selection = ((JComboBox)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
-		if (selection >= 0)
+		if(selection == -1)
+		{
+			((JButton)GetComponentByName("btnMonitorOnSelected")).setEnabled(false);
+			((JButton)GetComponentByName("btnMonitorOnSelected")).setText("Select An Interface");
+		}
+		else
 		{
 			((JButton)GetComponentByName("btnMonitorOnSelected")).setEnabled(true);
 			
-			if(bCapturing[selection])
+			if(bCapturing.get(selection))
 			{
-				((JButton)GetComponentByName("btnMonitorOnSelected")).setText("Stop Capture on " + deviceName[selection]);
+				((JButton)GetComponentByName("btnMonitorOnSelected")).setText("Stop Capture on " + deviceName.get(selection));
 			}
 			else
 			{
-				((JButton)GetComponentByName("btnMonitorOnSelected")).setText("Start Capture on " + deviceName[selection]);
-			}	
+				((JButton)GetComponentByName("btnMonitorOnSelected")).setText("Start Capture on " + deviceName.get(selection));
+			}
 		}
 	}
 	
@@ -737,6 +718,7 @@ public class CookieCadgerInterface extends JFrame
 		interfaceListModel = new DefaultComboBoxModel();
 		
 		// Get all packet capture devices
+		/*
 		List<PcapIf> alldevs = new ArrayList<PcapIf>(); // Will be filled with NICs
 		StringBuilder errbuf = new StringBuilder();     // For any error msgs
 		
@@ -748,44 +730,7 @@ public class CookieCadgerInterface extends JFrame
 			else
 				JOptionPane.showMessageDialog(null, "Can't read list of devices, error is: " + errbuf.toString());
 		}
-
-		deviceCount = alldevs.size();
-		bCapturing = new Boolean[deviceCount];
-		deviceName = new String[deviceCount];
-		deviceDescription = new String[deviceCount];
-		deviceCaptureProcess = new Process[deviceCount];
-		
-		int itemToSelect = -1;
-		int i = 0;
-		for (PcapIf device : alldevs)
-		{
-			bCapturing[i] = false;
-			
-			boolean bIsMon = false;
-			String interfaceDesc = "no description";
-			String interfaceName = deviceName[i] = device.getName();
-			String interfaceText;
-			
-			if(device.getDescription() != null && !device.getDescription().isEmpty())
-			{
-				interfaceDesc = device.getDescription();
-			}
-			
-			if(interfaceName.contains("mon0"))
-			{
-				bIsMon = true;
-			}
-			
-			deviceDescription[i] = interfaceDesc;
-			
-			interfaceText = interfaceName + " [" + interfaceDesc + "]";
-			interfaceListModel.addElement(interfaceText);
-			
-			if(bIsMon)
-				itemToSelect = i;
-			
-			i++;
-		}
+		*/
 		
 		txtConsole = new JTextArea();
 		txtConsole.setBackground(UIManager.getColor("Panel.background"));
@@ -809,7 +754,6 @@ public class CookieCadgerInterface extends JFrame
 		contentPane.add(interfaceListComboBox);
 		
 		interfaceListComboBox.setModel(interfaceListModel);
-		interfaceListComboBox.setSelectedIndex(itemToSelect);
 		
 		JScrollPane macListScrollPanel = new JScrollPane();
 		macListScrollPanel.setBounds(28, 62, 162, 382);
@@ -1125,7 +1069,10 @@ public class CookieCadgerInterface extends JFrame
 			public void actionPerformed(ActionEvent e)
 			{
 				int selectedInterface = ((JComboBox)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
-				boolean bInterfaceIsCapturing = bCapturing[selectedInterface]; // Make a copy because this value will be changing a lot...
+				if(selectedInterface == -1)
+					return;
+					
+				boolean bInterfaceIsCapturing = bCapturing.get(selectedInterface); // Make a copy because this value will be changing a lot...
 							
 				if(bInterfaceIsCapturing)
 				{
@@ -1154,10 +1101,98 @@ public class CookieCadgerInterface extends JFrame
 			}
 		});
 		
-		// Finally, associate all components with the HashMap
+		// Associate all components with the HashMap
 		CreateComponentMap();
+		
+		// Get capture devices
+		InitializeDevices();
+		
+		// Populate the ComboBox
+		int itemToSelect = -1;
+		for (int i = 0; i < deviceName.size(); i++)
+		{			
+			boolean bIsMon = false;
+			String interfaceText;
+			
+			if(deviceName.get(i).contains("mon0"))
+			{
+				bIsMon = true;
+			}
+			
+			interfaceText = deviceName.get(i) + " [" + deviceDescription.get(i) + "]";
+			interfaceListModel.addElement(interfaceText);
+			
+			if(bIsMon)
+				itemToSelect = i;
+		}
+		interfaceListComboBox.setSelectedIndex(itemToSelect);
 	}
 	
+	private void InitializeDevices()
+	{
+		// Get tshark location by checking likely Linux, Windows, and Mac path
+		File tshark;
+		pathToTshark = "";
+		String[] pathCheckStrings = { "/usr/sbin/tshark", "C:\\Program Files\\Wireshark\\tshark.exe", "C:\\Program Files (x86)\\Wireshark\\tshark.exe", "/Applications/Wireshark.app/Contents/Resources/bin/tshark" };
+		
+		for(String path : pathCheckStrings)
+		{
+			if(new File(path).exists())
+			{
+				Console("tshark located at " + path, true);
+				pathToTshark = path;
+				break;
+			}
+		}
+		
+		if(pathToTshark.isEmpty())
+		{
+			JOptionPane.showMessageDialog(null, "Error: couldn't find 'tshark' (part of the 'Wireshark' package). This software cannot capture or analyze packets without it.\nYou can still load previously saved sessions for replaying in the browser, but be aware you might encounter errors.");
+		}
+		else
+		{
+			Console("Querying tshark for capture devices. Tshark output follows:", true);
+
+			String line = "";
+			try {
+				ProcessBuilder pb = new ProcessBuilder(new String[] { pathToTshark, "-D" } );
+				pb.redirectErrorStream(true);
+				Process proc = pb.start();
+				InputStream is = proc.getInputStream();
+				InputStreamReader isr = new InputStreamReader(is);
+				BufferedReader br = new BufferedReader(isr);
+				
+				while ((line = br.readLine()) != null)
+				{
+					// Print every piece of output to the console
+					Console(line, true);
+					if(line.contains(". ")) // As in "1. eth1"
+					{
+						if(line.contains("(") && line.contains(")"))
+						{
+							// This line has a description
+							deviceDescription.add(line.substring(line.indexOf(" (") + 2, line.indexOf(")")));
+							deviceName.add(line.substring(line.indexOf(". ") + 2, line.indexOf(" (")));
+						}
+						else
+						{
+							// This line has no description
+							deviceDescription.add("no description");
+							deviceName.add(line.substring(line.indexOf(" ") + 1));
+						}
+						bCapturing.add(false);
+						deviceCaptureProcess.add(null);
+					}
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			Console("Capture device search completed with " + deviceName.size() + " devices found.", false);
+		}
+	}
+
 	private void Console(String text, boolean bAutoScroll)
 	{
 		if(txtConsole.getText().isEmpty())

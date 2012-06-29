@@ -2,20 +2,14 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/java-1.7.0-openjdk-1.7.0.3.x86_64"/>
-	<classpathentry kind="lib" path="dependencies/jnetpcap.jar" sourcepath="dependencies/jnetpcap.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="jar:platform:/resource/Cookie Cadger Interface/dependencies/jnetpcap.jar!/"/>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="CookieCadger/jnetpcap"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="dependencies/selenium-java-2.24.1.jar" sourcepath="dependencies/selenium-java-2.24.1-srcs.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="jar:platform:/resource/Cookie Cadger Interface/dependencies/selenium-java-2.24.1.jar!/"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry kind="lib" path="dependencies/sqlitejdbc-v056.jar" sourcepath="dependencies/sqlitejdbc-v056.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/Cookie Cadger Interface/dependencies/sqlitejdbc-v056.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="dependencies/selenium-server-standalone-2.24.1.jar" sourcepath="dependencies/selenium-server-standalone-2.24.1.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/CookieCadger/dependencies/selenium-server-standalone-2.24.1.jar!/"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
