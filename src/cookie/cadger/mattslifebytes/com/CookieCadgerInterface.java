@@ -1171,7 +1171,7 @@ public class CookieCadgerInterface extends JFrame
 						if(line.contains("(") && line.contains(")"))
 						{
 							// This line has a description
-							deviceDescription.add(line.substring(line.indexOf(" (") + 2, line.indexOf(")")));
+							deviceDescription.add(line.substring(line.indexOf(" (") + 2, line.indexOf(")")).trim());
 							deviceName.add(line.substring(line.indexOf(". ") + 2, line.indexOf(" (")));
 						}
 						else
