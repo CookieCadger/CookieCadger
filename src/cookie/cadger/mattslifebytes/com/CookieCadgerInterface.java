@@ -648,8 +648,10 @@ public class CookieCadgerInterface extends JFrame
 		}
 	}
 	
-	public CookieCadgerInterface() throws Exception
+	public CookieCadgerInterface(String pathToTshark) throws Exception
 	{
+		this.pathToTshark = pathToTshark;
+		
 		setResizable(false);
 		addWindowListener(new WindowAdapter() {
 			@Override
@@ -1130,24 +1132,40 @@ public class CookieCadgerInterface extends JFrame
 	
 	private void InitializeDevices()
 	{
-		// Get tshark location by checking likely Linux, Windows, and Mac path
 		File tshark;
-		pathToTshark = "";
-		String[] pathCheckStrings = { "/usr/sbin/tshark", "C:\\Program Files\\Wireshark\\tshark.exe", "C:\\Program Files (x86)\\Wireshark\\tshark.exe", "/Applications/Wireshark.app/Contents/Resources/bin/tshark" };
 		
-		for(String path : pathCheckStrings)
+		if(pathToTshark.isEmpty()) // no program arg specified
 		{
-			if(new File(path).exists())
+			// Get tshark location by checking likely Linux, Windows, and Mac paths
+			//							// Ubuntu/Debian	// Fedora/RedHat		// Windows 32-bit							//Windows 64-bit								//Mac OS X
+			String[] pathCheckStrings = { "/usr/bin/tshark", "/usr/sbin/tshark", "C:\\Program Files\\Wireshark\\tshark.exe", "C:\\Program Files (x86)\\Wireshark\\tshark.exe", "/Applications/Wireshark.app/Contents/Resources/bin/tshark" };
+			
+			for(String path : pathCheckStrings)
 			{
-				Console("tshark located at " + path, true);
-				pathToTshark = path;
-				break;
+				if(new File(path).exists())
+				{
+					Console("tshark located at " + path, true);
+					pathToTshark = path;
+					break;
+				}
+			}
+		}
+		else // program arg specified, check that tshark exists there
+		{
+			if(new File(pathToTshark).exists())
+			{
+				Console("tshark located at " + pathToTshark, true);
+			}
+			else
+			{
+				JOptionPane.showMessageDialog(null, "You specified a path to 'tshark' as an argument when starting this program, but the given path is invalid.");
+				pathToTshark = ""; // Empty the user-specified value
 			}
 		}
 		
 		if(pathToTshark.isEmpty())
 		{
-			JOptionPane.showMessageDialog(null, "Error: couldn't find 'tshark' (part of the 'Wireshark' package). This software cannot capture or analyze packets without it.\nYou can still load previously saved sessions for replaying in the browser, but be aware you might encounter errors.");
+			JOptionPane.showMessageDialog(null, "Error: couldn't find 'tshark' (part of the 'Wireshark' suite). This software cannot capture or analyze packets without it.\nYou can still load previously saved sessions for replaying in the browser, but be aware you might encounter errors.\n\nYou can manually specify the location to 'tshark' as a program argument.\n\nUsage:\njava -jar CookieCadger.jar <optional: full path to tshark>");
 		}
 		else
 		{
