@@ -145,10 +145,12 @@ public class CookieCadgerInterface extends JFrame
 		String line = "";
 		try
 		{
-			while ((line = br.readLine()) != null || pw.isFinished())
+			while ((line = br.readLine()) != null || pw.isFinished()) // Do while you have data to read, or if the process finishes start the loop to ensure all buffer has read, then exit
 			{
 				if(line == null) // Can happen while loading in and the proc finishes faster than readin
+				{
 					break;
+				}
 				
 				if(line.contains("\t"))
 				{
@@ -271,6 +273,15 @@ public class CookieCadgerInterface extends JFrame
 			{
 				if(deviceCaptureProcess.get(ethDevNumber) != null)
 					deviceCaptureProcess.get(ethDevNumber).destroy();
+				
+				e.printStackTrace();
+				Console("EXCEPTION", true);
+				
+				// TODO - REMOVE THIS KILLALL CAPTURE PROCESSES ON EXCEPTION
+				for (Process p : deviceCaptureProcess)
+				{
+					p.destroy();
+				}
 			}
 		}
 		finally
@@ -867,7 +878,7 @@ public class CookieCadgerInterface extends JFrame
 					public void run()
 					{
 						JFileChooser fc = new JFileChooser();
-						FileFilter pcapFilter = new FileNameExtensionFilter("*.pcap | *.cap", "pcap", "cap");
+						FileFilter pcapFilter = new FileNameExtensionFilter("*.pcap | *.cap | *.pcapdump", "pcap", "cap", "pcapdump");
 						fc.addChoosableFileFilter(pcapFilter);
 						fc.setFileFilter(pcapFilter);
 

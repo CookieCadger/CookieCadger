@@ -157,12 +157,16 @@ public class Sqlite3DB
 	public int createRequest(String uri, String useragent, String referrer, String cookies, int domain_id, int client_id) throws SQLException
 	{
 		long unixTime = System.currentTimeMillis() / 1000L;
-		try {
+		try {			
 			uri = URLDecoder.decode(uri, "UTF-8");
-			useragent = URLDecoder.decode(useragent, "UTF-8");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		try {			
 			referrer = URLDecoder.decode(referrer, "UTF-8");
-			cookies = URLDecoder.decode(cookies, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
