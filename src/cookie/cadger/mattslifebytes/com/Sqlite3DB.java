@@ -44,7 +44,7 @@ public class Sqlite3DB
 	    stat.executeUpdate("drop table if exists domains;");
 		
 	    // Now create them
-	    stat.executeUpdate("create table requests (id INTEGER PRIMARY KEY, timerecorded INTEGER, uri VARCHAR, useragent VARCHAR, referrer VARCHAR, cookies VARCHAR, domain_id INTEGER, client_id INTEGER);");
+	    stat.executeUpdate("create table requests (id INTEGER PRIMARY KEY, timerecorded INTEGER, uri VARCHAR, useragent VARCHAR, referer VARCHAR, cookies VARCHAR, domain_id INTEGER, client_id INTEGER);");
 	    stat.executeUpdate("create table clients (id INTEGER PRIMARY KEY, mac VARCHAR, ip VARCHAR, netbios_hostname VARCHAR, mdns_hostname VARCHAR);");
 	    stat.executeUpdate("create table domains (id INTEGER PRIMARY KEY, name VARCHAR);");
 	    
@@ -154,7 +154,7 @@ public class Sqlite3DB
 	}
 	
 	// return the ID of the newly created request
-	public int createRequest(String uri, String useragent, String referrer, String cookies, int domain_id, int client_id) throws SQLException
+	public int createRequest(String uri, String useragent, String referer, String cookies, int domain_id, int client_id) throws SQLException
 	{
 		long unixTime = System.currentTimeMillis() / 1000L;
 		try {			
@@ -165,7 +165,7 @@ public class Sqlite3DB
 		}
 		
 		try {			
-			referrer = URLDecoder.decode(referrer, "UTF-8");
+			referer = URLDecoder.decode(referer, "UTF-8");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -175,7 +175,7 @@ public class Sqlite3DB
 	    prep.setLong(1, unixTime);
 	    prep.setString(2, uri);
 	    prep.setString(3, useragent);
-	    prep.setString(4, referrer);
+	    prep.setString(4, referer);
 	    prep.setString(5, cookies);
 	    prep.setInt(6, domain_id);
 	    prep.setInt(7, client_id);
@@ -199,6 +199,7 @@ public class Sqlite3DB
 	    ResultSet rs = stat.executeQuery("select mac from clients where 1;");
 
 	    String[] value = toStringArray(rs, "mac");
+	    
 	    rs.close();
 	    stat.close();
 	    
@@ -217,6 +218,18 @@ public class Sqlite3DB
 	    return value;
 	}
 	
+	public int getDomainCount(String mac) throws SQLException
+	{
+		Statement stat = dbInstance.createStatement();
+	    ResultSet rs = stat.executeQuery("select count(distinct d.name) as num_domains from domains d inner join requests r on d.id = r.domain_id inner join clients c on c.id = r.client_id where c.mac = '" + mac + "';");
+	    int numDomains = rs.getInt("num_domains");
+	    
+	    rs.close();
+	    stat.close();
+	    
+	    return numDomains;
+	}
+	
 	public String[] getCookies(String id) throws SQLException
 	{
 		Statement stat = dbInstance.createStatement();
@@ -233,9 +246,8 @@ public class Sqlite3DB
 	{
 		ArrayList<ArrayList> request_list = new ArrayList<ArrayList>();
 		
-		//select r.uri from requests r inner join domains d on r.domain_id = d.id inner join clients c on c.id = r.client_id where c.mac = '00:0c:29:11:6f:8a';
 		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select r.id, r.timerecorded, r.uri from requests r inner join domains d on r.domain_id = d.id inner join clients c on c.id = r.client_id where c.mac = '" + mac + "' AND d.name = '" + domain + "';");
+	    ResultSet rs = stat.executeQuery("select r.id, r.timerecorded, r.uri from requests r inner join domains d on r.domain_id = d.id inner join clients c on c.id = r.client_id where c.mac = '" + mac + "' AND d.name LIKE '" + domain + "';");
 	    
 	    ArrayList<String> ids = new ArrayList<String>();
 	    ArrayList<String> timerecordeds = new ArrayList<String>();

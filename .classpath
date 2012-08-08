@@ -12,5 +12,6 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/CookieCadger/dependencies/selenium-server-standalone-2.24.1.jar!/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="dependencies/browsermob-proxy-2.0-beta-6.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
