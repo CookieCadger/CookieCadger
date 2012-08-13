@@ -45,34 +45,27 @@ import javax.swing.JList;
 import javax.swing.JScrollPane;
 import java.awt.Font;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpRequestInterceptor;
-import org.apache.http.protocol.HttpContext;
 import org.browsermob.proxy.ProxyServer;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.openqa.selenium.Cookie;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Proxy;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.firefox.FirefoxProfile;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 
@@ -92,6 +85,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 
 import javax.swing.JTextArea;
 import java.awt.event.WindowAdapter;
@@ -507,7 +501,7 @@ public class CookieCadgerInterface extends JFrame
 		}
 		
 		// Check if extended information can be gleaned for domains
-		if(requestHost.contains("facebook.com") && cookieData.contains("c_user"))
+		if(requestHost.contains("facebook.com") && cookieData.contains("c_user="))
 		{
 			int c_userPosition = cookieData.indexOf("c_user=");
 			String fbUserID = cookieData.substring(c_userPosition + 7, cookieData.indexOf(";", c_userPosition));
@@ -523,9 +517,29 @@ public class CookieCadgerInterface extends JFrame
 				e.printStackTrace();
 			}
 		}
-		else if(requestHost.contains("twitter.com") && cookieData.contains("twid"))
+		else if(requestHost.contains("twitter.com") && cookieData.contains("twid="))
 		{
 			Console(cookieData, true);
+			int c_twidPosition = cookieData.indexOf("twid=");
+			String twitterUserID = cookieData.substring(c_twidPosition + 5, cookieData.indexOf(";", c_twidPosition));
+			try {
+				twitterUserID = URLDecoder.decode(twitterUserID, "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			twitterUserID = twitterUserID.substring(2, twitterUserID.indexOf("|"));
+			Console(twitterUserID, true);
+			
+			try {
+				JSONObject twitterJSON = new JSONObject(readUrl("https://api.twitter.com/users/lookup.json?user_id=" + twitterUserID));
+				String twitterName = (String) twitterJSON.get("screen_name");
+				Console(twitterName, true);
+				
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -888,21 +902,6 @@ public class CookieCadgerInterface extends JFrame
 		domainListModel = new DefaultListModel();
 		requestListModel = new DefaultListModel();
 		interfaceListModel = new DefaultComboBoxModel();
-		
-		// Get all packet capture devices
-		/*
-		List<PcapIf> alldevs = new ArrayList<PcapIf>(); // Will be filled with NICs
-		StringBuilder errbuf = new StringBuilder();     // For any error msgs
-		
-		int r = Pcap.findAllDevs(alldevs, errbuf);
-		if (r == Pcap.NOT_OK || alldevs.isEmpty())
-		{
-			if(errbuf.toString().isEmpty())
-				JOptionPane.showMessageDialog(null, "Can't read list of devices. Program must run as root/Administrator to be able to iterate capture devices.\nYou will still be able to analyze *.pcap files or load a previous session.");
-			else
-				JOptionPane.showMessageDialog(null, "Can't read list of devices, error is: " + errbuf.toString());
-		}
-		*/
 		
 		txtConsole = new JTextArea();
 		txtConsole.setBackground(UIManager.getColor("Panel.background"));
