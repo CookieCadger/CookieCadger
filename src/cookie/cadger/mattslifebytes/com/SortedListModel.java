@@ -99,7 +99,7 @@ public class SortedListModel extends AbstractListModel {
             int insertionPoint = findInsertionPoint(entry);
             sortedModel.add(insertionPoint, entry);
         }
-    }
+    }    
     
     /**
      * Retrieve the sorted entry from the original model

@@ -13,5 +13,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="dependencies/browsermob-proxy-2.0-beta-6.jar"/>
+	<classpathentry kind="lib" path="dependencies/jetty-util-7.3.0.v20110203.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
