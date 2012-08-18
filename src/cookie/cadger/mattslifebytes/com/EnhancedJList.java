@@ -2,11 +2,16 @@ package cookie.cadger.mattslifebytes.com;
 
 import java.awt.Component;
 import java.awt.Graphics;
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Rectangle;
 
+import javax.imageio.ImageIO;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.ListCellRenderer;
 import javax.swing.JList;
 import javax.swing.ListModel;
@@ -16,6 +21,9 @@ import javax.swing.ToolTipManager;
 import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -24,7 +32,7 @@ import java.util.HashMap;
 /**
  * A JList that supports a zebra stripe background.
  */
-public class ZebraJList extends JList
+public class EnhancedJList extends JList
 {
     private Color rowColors[] = new Color[2];
     private boolean drawStripes = false;
@@ -32,7 +40,7 @@ public class ZebraJList extends JList
     private ArrayList<Color> highlightColors = new ArrayList<Color>();
     private Sqlite3DB dbInstance = null;
     
-    public ZebraJList( )
+    public EnhancedJList( )
     {
     	ToolTipManager.sharedInstance().setInitialDelay(0);
     	
@@ -41,7 +49,7 @@ public class ZebraJList extends JList
     	{
     		public void mouseMoved( MouseEvent e)
     		{
-    			ZebraJList theList = (ZebraJList) e.getSource();
+    			EnhancedJList theList = (EnhancedJList) e.getSource();
     			ListModel model = theList.getModel();
     			
     			Point mousePosition = e.getPoint();
@@ -72,15 +80,15 @@ public class ZebraJList extends JList
     	dbInstance = db;
     }
 */
-    public ZebraJList( ListModel dataModel )
+    public EnhancedJList( ListModel dataModel )
     {
         super( dataModel );
     }
-    public ZebraJList( Object[] listData )
+    public EnhancedJList( Object[] listData )
     {
         super( listData );
     }
-    public ZebraJList( java.util.Vector<?> listData )
+    public EnhancedJList( java.util.Vector<?> listData )
     {
         super( listData );
     }
@@ -127,6 +135,7 @@ public class ZebraJList extends JList
     public void paintComponent( Graphics g )
     {
         drawStripes = (getLayoutOrientation( )==VERTICAL) && isOpaque( );
+        //drawStripes = true;
         if ( !drawStripes )
         {
             super.paintComponent( g );
@@ -191,7 +200,7 @@ public class ZebraJList extends JList
                 list, value, index, isSelected, cellHasFocus );
             if ( !isSelected && drawStripes )
                 c.setBackground( rowColors[index&1] );
-
+            
             // Yes, we must highlight this
             String strVal = ((EnhancedJListItem)value).toString();
 
@@ -205,6 +214,13 @@ public class ZebraJList extends JList
             	c.setForeground(Color.BLACK);
             }
 
+            if(((EnhancedJListItem)value).hasThumbnail())
+            {
+            	JLabel itemLabel = (JLabel)c;
+            	ImageIcon icon = new ImageIcon(((EnhancedJListItem)value).getThumbnail());
+            	itemLabel.setIcon(icon);
+            }
+            
             return c;
         }
     }
@@ -246,18 +262,4 @@ public class ZebraJList extends JList
             0.1f * selHSB[1] + 0.9f * bgHSB[1],
             bgHSB[2] + ((bgHSB[2]<0.5f) ? 0.05f : -0.05f) );
     }
-    /*
-    // This method is called as the cursor moves within the list.
-    public String getToolTipText(MouseEvent evt)
-    {
-        // Get item index
-        int index = locationToIndex(evt.getPoint());
-
-        // Get item
-        EnhancedJListItem item = (EnhancedJListItem)getModel().getElementAt(index);
-
-        // Return the tool tip text
-        return "<html>" + item.getDescription();
-    }
-    */
 }

@@ -34,18 +34,23 @@ package cookie.cadger.mattslifebytes.com;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Image;
+import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JOptionPane;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
 import java.awt.Font;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.sql.SQLException;
 import java.text.DateFormat;
@@ -86,6 +91,7 @@ import java.awt.event.MouseListener;
 import javax.swing.DefaultComboBoxModel;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -95,6 +101,7 @@ import javax.swing.JTextArea;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -110,15 +117,18 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
 import javax.swing.JCheckBox;
+import javax.swing.JTable;
 
 public class CookieCadgerInterface extends JFrame
 {
+	private static final String version = "1.0";
 	private static final long serialVersionUID = 8342026239392268208L;
-
+	private static int localRandomization;
+	
 	private JPanel contentPane, requestsPanel, accountsPanel;
-	private EnhancedListModel macListModel, domainListModel, requestListModel;
+	private EnhancedListModel macListModel, domainListModel, requestListModel, sessionsListModel;
 	private DefaultComboBoxModel interfaceListModel;
-	private ZebraJList macList, domainList, requestList;
+	private EnhancedJList macList, domainList, requestList;
 	private JTextArea txtConsole;
 	private JScrollPane consoleScrollPane;
 	private String pathToTshark;
@@ -132,6 +142,7 @@ public class CookieCadgerInterface extends JFrame
 	private WebDriver driver = null;
 	private Sqlite3DB dbInstance = null;
 	private RequestInterceptor requestIntercept;
+	private JTable table;
 
 	private void StartCapture(int ethDevNumber, String pcapFile) throws IOException
 	{
@@ -146,7 +157,7 @@ public class CookieCadgerInterface extends JFrame
 		if(pcapFile.isEmpty())
 		{			
 			Console("Opening '" + deviceName.get(ethDevNumber) + "' for traffic capture.", true);
-			pb = new ProcessBuilder(new String[] { pathToTshark, "-i", deviceName.get(ethDevNumber), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
+			pb = new ProcessBuilder(new String[] { pathToTshark, "-i", deviceName.get(ethDevNumber), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
 			pb.redirectErrorStream(true);
 			deviceCaptureProcess.set(ethDevNumber, pb.start());
 			pw = new ProcessWatcher(deviceCaptureProcess.get(ethDevNumber));
@@ -155,7 +166,7 @@ public class CookieCadgerInterface extends JFrame
 		else
 		{
 			Console("Opening '" + pcapFile + "' for traffic capture.", true);
-			pb = new ProcessBuilder(new String[] { pathToTshark, "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
+			pb = new ProcessBuilder(new String[] { pathToTshark, "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
 			pb.redirectErrorStream(true);
 			proc = pb.start();
 			pw = new ProcessWatcher(proc);
@@ -202,19 +213,28 @@ public class CookieCadgerInterface extends JFrame
 						String mdnsName = values[9];
 						String requestHost = values[10];
 						String requestURI = values[11];
-						String userAgent = values[12];
-						String refererURI = values[13];
-						String cookieData = values[14];
-						
+						String accept = values[12];
+						String acceptEncoding = values[13];
+						String userAgent = values[14];
+						String refererURI = values[15];
+						String cookieData = values[16];
+			
 						// Poor man's implementation of a packet filter for when pcaps are loaded
 						if(!pcapFile.isEmpty() && (!tcpDestination.equals("80") && !udpSource.equals("5353") && !udpSource.equals("138")))
 						{
 							continue;
 						}
 
+						// When Cookie Cadger creates requests it appends a randomization
+						// to the Accept-Encoding. Check for it and ignore if matched.
+						if(accept.contains(", " + Integer.toString(localRandomization)))
+						{
+							continue;
+						}
+						
 						if(!requestURI.isEmpty())
 						{
-							ProcessRequest(macAddress, ipAddress, requestHost, requestURI, userAgent, refererURI, cookieData);
+							ProcessRequest(macAddress, ipAddress, requestHost, accept, acceptEncoding, requestURI, userAgent, refererURI, cookieData);
 						}
 						else if(!netbiosCommand.isEmpty() && netbiosCommand.equals("0x0f") && !netbiosName.isEmpty()) // 0x0f = host announcement broadcast
 						{
@@ -299,6 +319,10 @@ public class CookieCadgerInterface extends JFrame
 					nonTabbedOutput.add(line);
 				}
 			}
+		}
+		catch (IOException e)
+		{
+			// Ignore
 		}
 		catch (Exception e)
 		{
@@ -427,7 +451,7 @@ public class CookieCadgerInterface extends JFrame
 		}
 	}
 	
-	private void ProcessRequest(String macAddress, String ipAddress, String requestHost, String requestURI, String userAgent, String refererURI, String cookieData)
+	private void ProcessRequest(String macAddress, String ipAddress, String requestHost, String accept, String acceptEncoding, String requestURI, String userAgent, String refererURI, String cookieData)
 	{
 		int clientID = -1;
 		int domainID = -1;
@@ -517,6 +541,11 @@ public class CookieCadgerInterface extends JFrame
 		UpdateDescriptionForMac(macAddress);
 		
 		// Check if extended information can be gleaned for domains
+		
+		if(!accept.contains("text/html")) // Only glean from text to save resources
+			return;
+		
+		// Facebook
 		if(requestHost.contains("facebook.com") && cookieData.contains("c_user="))
 		{
 			int c_userPosition = cookieData.indexOf("c_user=");
@@ -525,16 +554,20 @@ public class CookieCadgerInterface extends JFrame
 				fbUserID = fbUserID.substring(0, fbUserID.indexOf(";"));
 			
 			try {
-				JSONObject fbJSON = new JSONObject(readUrl("http://graph.facebook.com/" + fbUserID));
-				String fbName = (String) fbJSON.get("name");
-				String fbUsername = (String) fbJSON.get("username");
-				
-				Console(fbName + "|" + fbUsername, true);
+				if(!dbInstance.containsValue("sessions", "user_token", fbUserID))
+				{
+					JSONObject fbJSON = new JSONObject(readURL("https://graph.facebook.com/" + fbUserID, userAgent, accept, cookieData));
+					String fbName = (String) fbJSON.get("name");
+					
+					CreateSession(requestID, fbUserID, "<html><font size=5>Facebook</font><br>" + fbName, "https://graph.facebook.com/" + fbUserID + "/picture");
+				}
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
+		
+		// Twitter
 		else if(requestHost.contains("twitter.com") && cookieData.contains("twid="))
 		{
 			int twidPosition = cookieData.indexOf("twid=");
@@ -552,14 +585,96 @@ public class CookieCadgerInterface extends JFrame
 			twitterUserID = twitterUserID.substring(2, twitterUserID.indexOf("|"));
 			
 			try {
-				JSONObject twitterJSON = new JSONObject(readUrl("https://api.twitter.com/users/lookup.json?user_id=" + twitterUserID));
-				String twitterName = (String) twitterJSON.get("screen_name");
-				Console(twitterName, true);
+				if(!dbInstance.containsValue("sessions", "user_token", twitterUserID))
+				{
+					JSONObject twitterJSON = new JSONObject(readURL("https://api.twitter.com/users/lookup.json?user_id=" + twitterUserID, userAgent, accept, cookieData));
+					String twitterName = (String) twitterJSON.get("screen_name");
+					
+					CreateSession(requestID, twitterUserID, "<html><font size=5>Twitter</font><br>" + twitterName, twitterJSON.getString("profile_image_url"));
+				}
+
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		// Wordpress
+		else if(cookieData.contains("wordpress_logged_in"))
+		{
+			try {
+				String content = readURL("http://" + requestHost + requestURI, userAgent, accept, cookieData);
+				
+				if(content.contains("title=\"My Account\""))
+				{
+					// Definite session found, get user name
+					int myAccountPosition = content.indexOf("title=\"My Account\"");
+					int usernamePosition = content.indexOf(", ", myAccountPosition);
+					String wordpressUser = content.substring(usernamePosition + 2);
+					wordpressUser = wordpressUser.substring(0, wordpressUser.indexOf("<"));
+					
+					if(!dbInstance.containsValue("sessions", "user_token", wordpressUser + "," + requestHost))
+					{
+						// Nothing amazingly unique to base the User Token on, so we'll settle for the host and user
+						CreateSession(requestID, wordpressUser + "," + requestHost, "<html>Wordpress installation on<br><font size=5>" + requestHost + "</font><br>User: " + wordpressUser, null);
+					}
+				}
 				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+		}
+		
+		// phpBB 3.x
+		else if(cookieData.contains("phpbb3_"))
+		{
+			try {
+				String content = readURL("http://" + requestHost + requestURI, userAgent, accept, cookieData);
+
+				if(content.contains("Logout [ "))
+				{
+					// Definite session found, get user name
+					int myAccountPosition = content.indexOf("Logout [ ");
+					String phpBBUser = content.substring(myAccountPosition + 9);
+					phpBBUser = phpBBUser.substring(0, phpBBUser.indexOf(" ]"));
+					
+					if(!dbInstance.containsValue("sessions", "user_token", phpBBUser + "," + requestHost))
+					{
+						// Nothing amazingly unique to base the User Token on, so we'll settle for the host and user
+						CreateSession(requestID, phpBBUser + "," + requestHost, "<html>phpBB 3.x installation on<br><font size=5>" + requestHost + "</font><br>User: " + phpBBUser, null);
+					}
+				}
+				
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		// Drupal
+		else if(cookieData.contains("SESS") && cookieData.contains("has_js="))
+		{
+			try {
+				String content = readURL("http://" + requestHost + requestURI, userAgent, accept, cookieData);
+				
+				if(content.contains("Log out "))
+				{
+					// Definite session found, get user name
+					int logOutPosition = content.indexOf("Log out ");
+					String drupalUser = content.substring(logOutPosition + 8);
+					drupalUser = drupalUser.substring(0, drupalUser.indexOf("<"));
+					
+					if(!dbInstance.containsValue("sessions", "user_token", drupalUser + "," + requestHost))
+					{
+						// Nothing amazingly unique to base the User Token on, so we'll settle for the host and user
+						CreateSession(requestID, drupalUser + "," + requestHost, "<html>Drupal installation on<br><font size=5>" + requestHost + "</font><br>User: " + drupalUser, null);
+					}
+				}
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}			
 		}
 	}
 	
@@ -949,6 +1064,8 @@ public class CookieCadgerInterface extends JFrame
 		});	    
 		dbInstance = new Sqlite3DB();
 		
+		localRandomization = 1000 + (int)(Math.random() * ((20110 - 1000) + 1));
+		
 		setTitle("Cookie Cadger");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 950, 680);
@@ -1012,11 +1129,16 @@ public class CookieCadgerInterface extends JFrame
 		tabbedPane.addTab("Requests", null, requestsPanel, null);
 		tabbedPane.addTab("Recognized Logins", null, accountsPanel, null);
 		
+		JScrollPane sessionsScrollPane = new JScrollPane();
+		sessionsScrollPane.setBounds(2, 2, 886, 366);
+		accountsPanel.add(sessionsScrollPane);
+				
 		contentPane.add(tabbedPane);
 		
 		macListModel = new EnhancedListModel();
 		domainListModel = new EnhancedListModel();
 		requestListModel = new EnhancedListModel();
+		sessionsListModel = new EnhancedListModel();
 		interfaceListModel = new DefaultComboBoxModel();
 		
 		txtConsole = new JTextArea();
@@ -1028,6 +1150,15 @@ public class CookieCadgerInterface extends JFrame
 		consoleScrollPane.setBounds(28, 455, 895, 150);
 		contentPane.add(consoleScrollPane);
 		consoleScrollPane.setViewportView(txtConsole);
+		
+		JList sessionsList = new EnhancedJList();
+		sessionsList.setLayoutOrientation(JList.HORIZONTAL_WRAP);
+		sessionsList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+		sessionsList.setVisibleRowCount(-1);
+
+		sessionsScrollPane.setViewportView(sessionsList);
+		
+		sessionsList.setModel(sessionsListModel);
 		
 		JButton btnMonitorOnSelected = new JButton("Select An Interface");
 		btnMonitorOnSelected.setEnabled(false);
@@ -1046,7 +1177,7 @@ public class CookieCadgerInterface extends JFrame
 		macListScrollPanel.setBounds(2, 2, 162, 328);
 		requestsPanel.add(macListScrollPanel);
 		
-		macList = new ZebraJList();
+		macList = new EnhancedJList();
 		
 		macList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		macList.addListSelectionListener(new ListSelectionListener()
@@ -1077,7 +1208,7 @@ public class CookieCadgerInterface extends JFrame
 		domainListScrollPane.setBounds(170, 2, 200, 366);
 		requestsPanel.add(domainListScrollPane);
 		
-		domainList = new ZebraJList();
+		domainList = new EnhancedJList();
 		
 		domainList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		domainList.addListSelectionListener(new ListSelectionListener()
@@ -1100,10 +1231,10 @@ public class CookieCadgerInterface extends JFrame
 		domainList.setModel(domainListModelSorted);
 		
 		JScrollPane requestListScrollPanel = new JScrollPane();
-		requestListScrollPanel.setBounds(376, 2, 513, 336);
+		requestListScrollPanel.setBounds(376, 2, 512, 336);
 		requestsPanel.add(requestListScrollPanel);
 
-		requestList = new ZebraJList();
+		requestList = new EnhancedJList();
 		
 		Font fontMonospace = new Font( "Monospaced", Font.BOLD, 12 ); 
 		requestList.setFont(fontMonospace);
@@ -1342,7 +1473,7 @@ public class CookieCadgerInterface extends JFrame
 		mntmAbout.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e)
 			{
-				JOptionPane.showMessageDialog(null, "Cookie Cadger\n\n" +
+				JOptionPane.showMessageDialog(null, "Cookie Cadger (v"+ version +")\n\n" +
 						"Copyright (c) 2012, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>\n" +
 						"All rights reserved.\n" +
 						"\n" +
@@ -1507,7 +1638,7 @@ public class CookieCadgerInterface extends JFrame
 		InitializeDevices();
 		
 		// Name and license
-		Console("\n\nCookie Cadger\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the terms of the FreeBSD license.\n", true);
+		Console("\n\nCookie Cadger (v"+ version +")\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the terms of the FreeBSD license.\n", true);
 		
 		// Populate the ComboBox
 		int itemToSelect = -1;
@@ -1612,6 +1743,36 @@ public class CookieCadgerInterface extends JFrame
 		}
 	}
 
+	private void CreateSession(int requestID, String userToken, String description, String profilePhotoURL)
+	{
+		try {
+			dbInstance.createSession(requestID, userToken, description, profilePhotoURL);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		// Update UI
+		EnhancedJListItem item = new EnhancedJListItem(-1, description, null);
+		
+		// Make image
+		if(profilePhotoURL != null && !profilePhotoURL.isEmpty())
+		{
+			try {
+				Image photo = null;
+				URL url = new URL(profilePhotoURL);
+				photo = ImageIO.read(url);
+				item.setThumbnail(photo);
+				
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		sessionsListModel.addElement(item);
+	}
+	
 	private void Console(String text, boolean bAutoScroll)
 	{
 		if(txtConsole.getText().isEmpty())
@@ -1659,11 +1820,18 @@ public class CookieCadgerInterface extends JFrame
         else return null;
 	}
 	
-	private static String readUrl(String urlString) throws Exception {
+	private static String readURL(String urlString, String userAgent, String accept, String cookies) throws Exception
+	{	
 	    BufferedReader reader = null;
 	    try {
 	        URL url = new URL(urlString);
-	        reader = new BufferedReader(new InputStreamReader(url.openStream()));
+	        URLConnection urlConn = url.openConnection();
+	        
+        	urlConn.setRequestProperty("Cookie", cookies);	        
+	        urlConn.setRequestProperty("User-Agent", userAgent);
+	        urlConn.setRequestProperty("Accept", accept + ", " + Integer.toString(localRandomization));
+	        
+	        reader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
 	        StringBuffer buffer = new StringBuffer();
 	        int read;
 	        char[] chars = new char[1024];
@@ -1671,9 +1839,13 @@ public class CookieCadgerInterface extends JFrame
 	            buffer.append(chars, 0, read); 
 
 	        return buffer.toString();
+	    } catch (FileNotFoundException ex) {
+	    	// Nothing
 	    } finally {
 	        if (reader != null)
 	            reader.close();
 	    }
+	    
+	    return "";
 	}
 }

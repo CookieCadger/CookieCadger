@@ -26,6 +26,7 @@ public class Sqlite3DB
 		Class.forName("org.sqlite.JDBC");
 
 		executionPath = System.getProperty("user.dir").replace("\\", "/");
+		System.out.println(executionPath);
 		dbInstance = DriverManager.getConnection("jdbc:sqlite:" + executionPath + "/session.sqlite");
 		
 		// Cleans up the temporary DB on exit
@@ -42,11 +43,13 @@ public class Sqlite3DB
 	    stat.executeUpdate("drop table if exists requests;");
 	    stat.executeUpdate("drop table if exists clients;");
 	    stat.executeUpdate("drop table if exists domains;");
+	    stat.executeUpdate("drop table if exists sessions;");
 		
 	    // Now create them
 	    stat.executeUpdate("create table requests (id INTEGER PRIMARY KEY, timerecorded INTEGER, uri VARCHAR, useragent VARCHAR, referer VARCHAR, cookies VARCHAR, domain_id INTEGER, client_id INTEGER);");
 	    stat.executeUpdate("create table clients (id INTEGER PRIMARY KEY, mac VARCHAR, ip VARCHAR, netbios_hostname VARCHAR, mdns_hostname VARCHAR);");
 	    stat.executeUpdate("create table domains (id INTEGER PRIMARY KEY, name VARCHAR);");
+	    stat.executeUpdate("create table sessions (id INTEGER PRIMARY KEY, user_token, description VARCHAR, profile_photo_url VARCHAR, request_id INTEGER);");
 	    
 	    stat.close();
 	}
@@ -124,6 +127,27 @@ public class Sqlite3DB
 	    prep.executeBatch();
 		
 	    Statement stat = dbInstance.createStatement();
+	    ResultSet rs = stat.executeQuery("select last_insert_rowid();");
+	    
+	    int value = rs.getInt("last_insert_rowid()");
+	    rs.close();
+	    stat.close();
+	    prep.close();
+	    
+	    return value;
+	}
+
+	public int createSession(int requestID, String userToken, String description, String profilePhotoURL) throws SQLException
+	{
+		PreparedStatement prep = dbInstance.prepareStatement("insert into sessions values(NULL,?,?,?,?);");
+	    prep.setString(1, userToken);
+	    prep.setString(2, description);
+	    prep.setString(3, profilePhotoURL);
+	    prep.setInt(4, requestID);
+	    prep.addBatch();
+	    prep.executeBatch();
+	    
+	    Statement stat = dbInstance.createStatement();	    
 	    ResultSet rs = stat.executeQuery("select last_insert_rowid();");
 	    
 	    int value = rs.getInt("last_insert_rowid()");
