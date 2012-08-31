@@ -26,7 +26,6 @@ public class Sqlite3DB
 		Class.forName("org.sqlite.JDBC");
 
 		executionPath = System.getProperty("user.dir").replace("\\", "/");
-		System.out.println(executionPath);
 		dbInstance = DriverManager.getConnection("jdbc:sqlite:" + executionPath + "/session.sqlite");
 		
 		// Cleans up the temporary DB on exit
@@ -46,8 +45,8 @@ public class Sqlite3DB
 	    stat.executeUpdate("drop table if exists sessions;");
 		
 	    // Now create them
-	    stat.executeUpdate("create table requests (id INTEGER PRIMARY KEY, timerecorded INTEGER, uri VARCHAR, useragent VARCHAR, referer VARCHAR, cookies VARCHAR, domain_id INTEGER, client_id INTEGER);");
-	    stat.executeUpdate("create table clients (id INTEGER PRIMARY KEY, mac VARCHAR, ip VARCHAR, netbios_hostname VARCHAR, mdns_hostname VARCHAR);");
+	    stat.executeUpdate("create table requests (id INTEGER PRIMARY KEY, timerecorded INTEGER, uri VARCHAR, useragent VARCHAR, referer VARCHAR, cookies VARCHAR, authorization VARCHAR, auth_basic VARCHAR, domain_id INTEGER, client_id INTEGER);");
+	    stat.executeUpdate("create table clients (id INTEGER PRIMARY KEY, mac VARCHAR, ipv4_address VARCHAR, ipv6_address VARCHAR, netbios_hostname VARCHAR, mdns_hostname VARCHAR);");
 	    stat.executeUpdate("create table domains (id INTEGER PRIMARY KEY, name VARCHAR);");
 	    stat.executeUpdate("create table sessions (id INTEGER PRIMARY KEY, user_token, description VARCHAR, profile_photo_url VARCHAR, request_id INTEGER);");
 	    
@@ -116,13 +115,14 @@ public class Sqlite3DB
 	}
 	
 	// return the ID of the newly created client
-	public int createClient(String mac, String ip) throws SQLException
+	public int createClient(String mac) throws SQLException
 	{
-	    PreparedStatement prep = dbInstance.prepareStatement("insert into clients values(NULL,?,?,?,?);");
+	    PreparedStatement prep = dbInstance.prepareStatement("insert into clients values(NULL,?,?,?,?,?);");
 	    prep.setString(1, mac);
-	    prep.setString(2, ip);
+	    prep.setString(2, "");
 	    prep.setString(3, "");
 	    prep.setString(4, "");
+	    prep.setString(5, "");
 	    prep.addBatch();
 	    prep.executeBatch();
 		
@@ -178,7 +178,7 @@ public class Sqlite3DB
 	}
 	
 	// return the ID of the newly created request
-	public int createRequest(String uri, String useragent, String referer, String cookies, int domain_id, int client_id) throws SQLException
+	public int createRequest(String uri, String useragent, String referer, String cookies, String authorization, String authBasic, int domain_id, int client_id) throws SQLException
 	{
 		long unixTime = System.currentTimeMillis() / 1000L;
 		try {			
@@ -195,14 +195,16 @@ public class Sqlite3DB
 			e.printStackTrace();
 		}
 		
-	    PreparedStatement prep = dbInstance.prepareStatement("insert into requests values(NULL,?,?,?,?,?,?,?);");
+	    PreparedStatement prep = dbInstance.prepareStatement("insert into requests values(NULL,?,?,?,?,?,?,?,?,?);");
 	    prep.setLong(1, unixTime);
 	    prep.setString(2, uri);
 	    prep.setString(3, useragent);
 	    prep.setString(4, referer);
 	    prep.setString(5, cookies);
-	    prep.setInt(6, domain_id);
-	    prep.setInt(7, client_id);
+	    prep.setString(6, authorization);
+	    prep.setString(7, authBasic);
+	    prep.setInt(8, domain_id);
+	    prep.setInt(9, client_id);
 	    prep.addBatch();
 	    prep.executeBatch();
 	 

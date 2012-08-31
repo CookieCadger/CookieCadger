@@ -34,78 +34,37 @@ package cookie.cadger.mattslifebytes.com;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.Image;
-import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
-
-import javax.imageio.ImageIO;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.EmptyBorder;
-import javax.swing.JOptionPane;
-import javax.swing.JList;
-import javax.swing.JScrollPane;
 import java.awt.Font;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLDecoder;
-import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-
-import javax.swing.event.ListSelectionListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
-
-import org.browsermob.proxy.ProxyServer;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.Proxy;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.remote.CapabilityType;
-import org.openqa.selenium.remote.DesiredCapabilities;
-
-import cookie.cadger.mattslifebytes.com.SortedListModel.SortOrder;
-
-import javax.swing.JComboBox;
-import javax.swing.JButton;
-
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 
-import javax.swing.DefaultComboBoxModel;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-
-import javax.swing.JTextArea;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-
-import javax.swing.ImageIcon;
-import javax.swing.JComponent;
+import javax.imageio.ImageIO;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
+import javax.swing.JOptionPane;
+import javax.swing.JList;
+import javax.swing.JScrollPane;
+import javax.swing.JComboBox;
+import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPopupMenu;
+import javax.swing.JProgressBar;
 import javax.swing.JTabbedPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
@@ -117,32 +76,75 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
 import javax.swing.JCheckBox;
-import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
+import java.math.BigInteger;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
+import org.browsermob.proxy.ProxyServer;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Proxy;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.remote.CapabilityType;
+import org.openqa.selenium.remote.DesiredCapabilities;
+
+import cookie.cadger.mattslifebytes.com.SortedListModel.SortOrder;
 
 public class CookieCadgerInterface extends JFrame
 {
 	private static final String version = "1.0";
 	private static final long serialVersionUID = 8342026239392268208L;
 	private static int localRandomization;
+	private static String executionPath = System.getProperty("user.dir").replace("\\", "/");
 	
-	private JPanel contentPane, requestsPanel, accountsPanel;
+	private JPanel contentPane, requestsPanel, sessionsPanel;
 	private EnhancedListModel macListModel, domainListModel, requestListModel, sessionsListModel;
-	private DefaultComboBoxModel interfaceListModel;
-	private EnhancedJList macList, domainList, requestList;
+	private DefaultComboBoxModel<String> interfaceListModel;
+	private EnhancedJList macList, domainList, requestList, sessionsList;
 	private JTextArea txtConsole;
 	private JScrollPane consoleScrollPane;
+	private JTabbedPane tabbedPane;
+	private JProgressBar loadingRequestProgressBar;
 	private String pathToTshark;
 	private ArrayList<Boolean> bCapturing = new ArrayList<Boolean>();
 	private ArrayList<String> deviceName = new ArrayList<String>();
 	private ArrayList<String> deviceDescription = new ArrayList<String>();
 	private ArrayList<Process> deviceCaptureProcess = new ArrayList<Process>();
-	private HashMap componentMap; // Cheers to Jesse Strickland (stackoverflow.com/questions/4958600/get-a-swing-component-by-name)
+	private ArrayList<String> sessionDetectors = new ArrayList<String>();
+	private HashMap<String, Component> componentMap; // Cheers to Jesse Strickland (stackoverflow.com/questions/4958600/get-a-swing-component-by-name)
 	private JPopupMenu macPopup, requestPopup;
 	
 	private WebDriver driver = null;
+	private ProxyServer server = null;
+	private Proxy proxy = null;
 	private Sqlite3DB dbInstance = null;
+	private boolean bUseSessionDetection = false;
 	private RequestInterceptor requestIntercept;
-	private JTable table;
+	private ScriptEngineManager manager = new ScriptEngineManager();
+    private ScriptEngine engine = manager.getEngineByName("js");
 
 	private void StartCapture(int ethDevNumber, String pcapFile) throws IOException
 	{
@@ -157,7 +159,7 @@ public class CookieCadgerInterface extends JFrame
 		if(pcapFile.isEmpty())
 		{			
 			Console("Opening '" + deviceName.get(ethDevNumber) + "' for traffic capture.", true);
-			pb = new ProcessBuilder(new String[] { pathToTshark, "-i", deviceName.get(ethDevNumber), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
+			pb = new ProcessBuilder(new String[] { pathToTshark, "-i", deviceName.get(ethDevNumber), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
 			pb.redirectErrorStream(true);
 			deviceCaptureProcess.set(ethDevNumber, pb.start());
 			pw = new ProcessWatcher(deviceCaptureProcess.get(ethDevNumber));
@@ -166,7 +168,7 @@ public class CookieCadgerInterface extends JFrame
 		else
 		{
 			Console("Opening '" + pcapFile + "' for traffic capture.", true);
-			pb = new ProcessBuilder(new String[] { pathToTshark, "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie" } );
+			pb = new ProcessBuilder(new String[] { pathToTshark, "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
 			pb.redirectErrorStream(true);
 			proc = pb.start();
 			pw = new ProcessWatcher(proc);
@@ -191,7 +193,7 @@ public class CookieCadgerInterface extends JFrame
 					String[] values = line.split("\t", -1); // -1 limit means don't ignore whitespace
 
 					if(values.length > 4) // If only contains four or less values, likely continuation data, ignore.
-					{					
+					{		
 						String macAddressWired = values[0];
 						String macAddressWireless = values[1];
 						
@@ -203,70 +205,59 @@ public class CookieCadgerInterface extends JFrame
 						else // No MAC would hopefully never actually happen, but you never know
 							macAddress = "Unknown";
 						
-						String ipAddress = values[2];
-						//String tcpSource = values[3]; //Unused
-						String tcpDestination = values[4];
-						String udpSource = values[5];
-						//String udpDestination = values[6]; //Unused
-						String netbiosCommand = values[7];
-						String netbiosName = values[8];
-						String mdnsName = values[9];
-						String requestHost = values[10];
-						String requestURI = values[11];
-						String accept = values[12];
-						String acceptEncoding = values[13];
-						String userAgent = values[14];
-						String refererURI = values[15];
-						String cookieData = values[16];
+						String ipv4Address = values[2];
+						String ipv6Address = values[3];
+						//String tcpSource = values[4]; //Unused
+						String tcpDestination = values[5];
+						String udpSource = values[6];
+						//String udpDestination = values[7]; //Unused
+						String netbiosCommand = values[8];
+						String netbiosName = values[9];
+						String mdnsName = values[10];
+						String requestHost = values[11];
+						String requestURI = values[12];
+						String accept = values[13];
+						String acceptEncoding = values[14];
+						String userAgent = values[15];
+						String refererURI = values[16];
+						String cookieData = values[17];
+						String authorization = values[18];
+						String authBasic = values[19];
 			
+						boolean bUsefulData = false;
+						
 						// Poor man's implementation of a packet filter for when pcaps are loaded
 						if(!pcapFile.isEmpty() && (!tcpDestination.equals("80") && !udpSource.equals("5353") && !udpSource.equals("138")))
 						{
 							continue;
 						}
-
+						
 						// When Cookie Cadger creates requests it appends a randomization
-						// to the Accept-Encoding. Check for it and ignore if matched.
+						// to the Accept header. Check for it and ignore if matched.
 						if(accept.contains(", " + Integer.toString(localRandomization)))
 						{
 							continue;
 						}
-						
+
 						if(!requestURI.isEmpty())
 						{
-							ProcessRequest(macAddress, ipAddress, requestHost, accept, acceptEncoding, requestURI, userAgent, refererURI, cookieData);
+							bUsefulData = true;
+							HandleClient(macAddress);
+							
+							ProcessRequest(macAddress, ipv4Address, ipv6Address, requestHost, accept, acceptEncoding, requestURI, userAgent, refererURI, cookieData, authorization, authBasic);
 						}
 						else if(!netbiosCommand.isEmpty() && netbiosCommand.equals("0x0f") && !netbiosName.isEmpty()) // 0x0f = host announcement broadcast
 						{
-							try
+							bUsefulData = true;
+							HandleClient(macAddress);
+							
+							dbInstance.setStringValue("clients", "netbios_hostname", netbiosName, "mac", macAddress);
+						
+							// If only show hosts with GET requests is unchecked, always show. If checked and total for this MAC > 0, show as well
+							if(!macListModel.contains(macAddress) && !((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !macListModel.contains(macAddress) && dbInstance.getDomainCount(macAddress) > 0 ) )
 							{
-								if(dbInstance.containsValue("clients", "mac", macAddress))
-								{
-									// We've seen this mac already, just set the hostname
-									dbInstance.setStringValue("clients", "netbios_hostname", netbiosName, "mac", macAddress);
-								}
-								else // Client object doesn't exist for MAC? Create one.
-								{
-									dbInstance.createClient(macAddress, ipAddress);
-									dbInstance.setStringValue("clients", "netbios_hostname", netbiosName, "mac", macAddress);
-								}
-								
-								// If only show hosts with GET requests is unchecked, always show. If checked and total for this MAC > 0, show as well
-								if(!macListModel.contains(macAddress) && !((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !macListModel.contains(macAddress) && dbInstance.getDomainCount(macAddress) > 0 ) )
-								{
-									//macListModel.addElement(macAddress);
-									macListModel.addElement(new EnhancedJListItem(-1, macAddress, null));
-									macList.performHighlight(macAddress, Color.BLUE);
-								}
-								
-								// And update the informational display
-								//DisplayInfoForMac(macAddress);
-								UpdateDescriptionForMac(macAddress);
-							}
-							catch (SQLException e)
-							{
-								// TODO Auto-generated catch block
-								e.printStackTrace();
+								macListModel.addElement(new EnhancedJListItem(-1, macAddress, null));
+								macList.performHighlight(macAddress, Color.BLUE);
 							}
 						}
 						else if(!mdnsName.isEmpty())
@@ -277,41 +268,35 @@ public class CookieCadgerInterface extends JFrame
 								String mdnsNameStr = mdnsResponses[mdnsResponses.length - 1];
 								
 								if(!mdnsNameStr.contains(".arpa") && !mdnsNameStr.contains("_tcp") && !mdnsNameStr.contains("_udp") && !mdnsNameStr.contains("<Root>"))
-								{									
-									mdnsNameStr = mdnsNameStr.replace(".local", "");
+								{
+									bUsefulData = true;
+									HandleClient(macAddress);
 									
-									try
+									mdnsNameStr = mdnsNameStr.replace(".local", "");
+
+									dbInstance.setStringValue("clients", "mdns_hostname", mdnsNameStr, "mac", macAddress);
+									
+									// If only show hosts with GET requests is unchecked, always show. If checked and total for this MAC > 0, show as well
+									if(!macListModel.contains(macAddress) && !((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !macListModel.contains(macAddress) && dbInstance.getDomainCount(macAddress) > 0 ) )
 									{
-										if(dbInstance.containsValue("clients", "mac", macAddress))
-										{
-											// We've seen this mac already, just set the hostname
-											dbInstance.setStringValue("clients", "mdns_hostname", mdnsNameStr, "mac", macAddress);
-										}
-										else // Client object doesn't exist for MAC? Create one.
-										{
-											dbInstance.createClient(macAddress, ipAddress);
-											dbInstance.setStringValue("clients", "mdns_hostname", mdnsNameStr, "mac", macAddress);
-										}
-										
-										// If only show hosts with GET requests is unchecked, always show. If checked and total for this MAC > 0, show as well
-										if(!macListModel.contains(macAddress) && !((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !macListModel.contains(macAddress) && dbInstance.getDomainCount(macAddress) > 0 ) )
-										{
-											macListModel.addElement(new EnhancedJListItem(-1, macAddress, null));
-											macList.performHighlight(macAddress, Color.BLUE);
-										}
-										
-										// And update the informational display
-										//DisplayInfoForMac(macAddress);
-										UpdateDescriptionForMac(macAddress);
-									}
-									catch (SQLException e)
-									{
-										// TODO Auto-generated catch block
-										e.printStackTrace();
+										macListModel.addElement(new EnhancedJListItem(-1, macAddress, null));
+										macList.performHighlight(macAddress, Color.BLUE);
 									}
 								}
 							}
 						}
+						
+						if(bUsefulData)
+						{
+							if(!ipv4Address.isEmpty())
+								dbInstance.setStringValue("clients", "ipv4_address", ipv4Address, "mac", macAddress);
+							
+							if(!ipv6Address.isEmpty())
+								dbInstance.setStringValue("clients", "ipv6_address", ipv6Address, "mac", macAddress);
+						}
+						
+						// And update the informational display
+						UpdateDescriptionForMac(macAddress);
 					}
 				}
 				else
@@ -320,15 +305,15 @@ public class CookieCadgerInterface extends JFrame
 				}
 			}
 		}
-		catch (IOException e)
+		catch (IOException ioe)
 		{
-			// Ignore
+			// Do nothing
 		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
 			Console("EXCEPTION", true);
-			
+
 			if(!pcapFile.isEmpty() && proc != null)
 			{
 				proc.destroy();
@@ -337,13 +322,6 @@ public class CookieCadgerInterface extends JFrame
 			{
 				if(deviceCaptureProcess.get(ethDevNumber) != null)
 					deviceCaptureProcess.get(ethDevNumber).destroy();
-				
-				// TODO - REMOVE THIS KILLALL CAPTURE PROCESSES ON EXCEPTION
-				for (Process p : deviceCaptureProcess)
-				{
-					if(p != null)
-							p.destroy();
-				}
 			}
 		}
 		finally
@@ -391,7 +369,7 @@ public class CookieCadgerInterface extends JFrame
 	{
 		interfaceListModel.removeElementAt(ethDevNumber);
 		interfaceListModel.insertElementAt(deviceName.get(ethDevNumber) + " [" + deviceDescription.get(ethDevNumber) + "]", ethDevNumber);
-		((JComboBox)GetComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
+		((JComboBox<?>)GetComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
 
 		if (deviceCaptureProcess.get(ethDevNumber) != null)
 		{
@@ -407,7 +385,7 @@ public class CookieCadgerInterface extends JFrame
 	{
 		interfaceListModel.removeElementAt(ethDevNumber);
 		interfaceListModel.insertElementAt(deviceName.get(ethDevNumber) + " [" + deviceDescription.get(ethDevNumber) + "] (CURRENTLY CAPTURING)", ethDevNumber);
-		((JComboBox)GetComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
+		((JComboBox<?>)GetComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
 		
 		bCapturing.set(ethDevNumber, true);
 		
@@ -426,11 +404,12 @@ public class CookieCadgerInterface extends JFrame
 		requestListModel.clear();
 		domainListModel.clear();
 		macListModel.clear();
+		sessionsListModel.clear();
 	}
 	
 	private void SetCaptureButtonText()
 	{
-		int selection = ((JComboBox)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
+		int selection = ((JComboBox<?>)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
 		if(selection == -1)
 		{
 			((JButton)GetComponentByName("btnMonitorOnSelected")).setEnabled(false);
@@ -451,11 +430,12 @@ public class CookieCadgerInterface extends JFrame
 		}
 	}
 	
-	private void ProcessRequest(String macAddress, String ipAddress, String requestHost, String accept, String acceptEncoding, String requestURI, String userAgent, String refererURI, String cookieData)
+	private void ProcessRequest(final String macAddress, final String ipv4Address, final String ipv6Address, final String requestHost, final String accept, final String acceptEncoding, final String requestURI, final String userAgent, final String refererURI, final String cookieData, final String authorization, final String authBasic)
 	{
 		int clientID = -1;
 		int domainID = -1;
-		int requestID = -1;
+		int reqID = -1;
+		final int requestID;
 	
 		try
 		{
@@ -469,7 +449,7 @@ public class CookieCadgerInterface extends JFrame
 			}
 			else // Client object doesn't exist for MAC? Create one.
 			{
-				clientID = dbInstance.createClient(macAddress, ipAddress);
+				clientID = dbInstance.createClient(macAddress);
 			}
 		}
 		catch (SQLException e)
@@ -508,7 +488,7 @@ public class CookieCadgerInterface extends JFrame
 				
 		try
 		{
-			requestID = dbInstance.createRequest(requestURI, userAgent, refererURI, cookieData, domainID, clientID);
+			reqID = dbInstance.createRequest(requestURI, userAgent, refererURI, cookieData, authorization, authBasic, domainID, clientID);
 			
 			// Update the requests list if necessary
 			if(!macList.isSelectionEmpty() && ((EnhancedJListItem)macList.getSelectedValue()).toString().equals(macAddress) && !domainList.isSelectionEmpty() && (((EnhancedJListItem)domainList.getSelectedValue()).toString().equals(requestHost) || (((EnhancedJListItem)domainList.getSelectedValue()).toString().equals("[ All Domains ]"))))
@@ -516,9 +496,7 @@ public class CookieCadgerInterface extends JFrame
 				Date now = new Date();	
 				String dateString = DateFormat.getTimeInstance(DateFormat.MEDIUM).format(now);
 
-				//String idFormatted = String.format("%4d", requestID);
-				//requestListModel.addElement("#" + idFormatted + " @ " + dateString + ": " + requestURI);
-				requestListModel.addElement(new EnhancedJListItem(requestID, dateString + ": " + requestURI, null));
+				requestListModel.addElement(new EnhancedJListItem(reqID, dateString + ": " + requestURI, null));
 			}
 		}
 		catch (SQLException e)
@@ -539,142 +517,91 @@ public class CookieCadgerInterface extends JFrame
 		}
 
 		UpdateDescriptionForMac(macAddress);
+		requestID = reqID; // Set the 'final' request ID to pass into the new handler Thread
 		
-		// Check if extended information can be gleaned for domains
+		if(!bUseSessionDetection) // And that's as far as we'll go
+			return;
 		
 		if(!accept.contains("text/html")) // Only glean from text to save resources
 			return;
 		
-		// Facebook
-		if(requestHost.contains("facebook.com") && cookieData.contains("c_user="))
+		Thread analyzeRequestThread = new Thread(new Runnable()
 		{
-			int c_userPosition = cookieData.indexOf("c_user=");
-			String fbUserID = cookieData.substring(c_userPosition + 7);
-			if(fbUserID.contains(";"))
-				fbUserID = fbUserID.substring(0, fbUserID.indexOf(";"));
-			
-			try {
-				if(!dbInstance.containsValue("sessions", "user_token", fbUserID))
-				{
-					JSONObject fbJSON = new JSONObject(readURL("https://graph.facebook.com/" + fbUserID, userAgent, accept, cookieData));
-					String fbName = (String) fbJSON.get("name");
-					
-					CreateSession(requestID, fbUserID, "<html><font size=5>Facebook</font><br>" + fbName, "https://graph.facebook.com/" + fbUserID + "/picture");
-				}
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
-		// Twitter
-		else if(requestHost.contains("twitter.com") && cookieData.contains("twid="))
-		{
-			int twidPosition = cookieData.indexOf("twid=");
-			String twitterUserID = cookieData.substring(twidPosition + 5);
-
-			if(twitterUserID.contains(";"))
-				twitterUserID = twitterUserID.substring(0, twitterUserID.indexOf(";"));
-			
-			try {
-				twitterUserID = URLDecoder.decode(twitterUserID, "UTF-8");
-			} catch (UnsupportedEncodingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			twitterUserID = twitterUserID.substring(2, twitterUserID.indexOf("|"));
-			
-			try {
-				if(!dbInstance.containsValue("sessions", "user_token", twitterUserID))
-				{
-					JSONObject twitterJSON = new JSONObject(readURL("https://api.twitter.com/users/lookup.json?user_id=" + twitterUserID, userAgent, accept, cookieData));
-					String twitterName = (String) twitterJSON.get("screen_name");
-					
-					CreateSession(requestID, twitterUserID, "<html><font size=5>Twitter</font><br>" + twitterName, twitterJSON.getString("profile_image_url"));
-				}
-
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
-		// Wordpress
-		else if(cookieData.contains("wordpress_logged_in"))
-		{
-			try {
-				String content = readURL("http://" + requestHost + requestURI, userAgent, accept, cookieData);
+			public void run()
+			{				
+				// For a unique token, we'll use a quick MD5 of the user MAC and the request host
+				String uniqueID = hashMD5(macAddress + requestHost);
 				
-				if(content.contains("title=\"My Account\""))
-				{
-					// Definite session found, get user name
-					int myAccountPosition = content.indexOf("title=\"My Account\"");
-					int usernamePosition = content.indexOf(", ", myAccountPosition);
-					String wordpressUser = content.substring(usernamePosition + 2);
-					wordpressUser = wordpressUser.substring(0, wordpressUser.indexOf("<"));
-					
-					if(!dbInstance.containsValue("sessions", "user_token", wordpressUser + "," + requestHost))
+				// Now check for the token. If new, pass on to handler classes
+				try
+				{	
+					if(!dbInstance.containsValue("sessions", "user_token", uniqueID))
 					{
-						// Nothing amazingly unique to base the User Token on, so we'll settle for the host and user
-						CreateSession(requestID, wordpressUser + "," + requestHost, "<html>Wordpress installation on<br><font size=5>" + requestHost + "</font><br>User: " + wordpressUser, null);
-					}
-				}
-				
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
-		// phpBB 3.x
-		else if(cookieData.contains("phpbb3_"))
-		{
-			try {
-				String content = readURL("http://" + requestHost + requestURI, userAgent, accept, cookieData);
+						for(String sd : sessionDetectors)
+						{
+					    	FileReader reader = new FileReader(sd);
 
-				if(content.contains("Logout [ "))
-				{
-					// Definite session found, get user name
-					int myAccountPosition = content.indexOf("Logout [ ");
-					String phpBBUser = content.substring(myAccountPosition + 9);
-					phpBBUser = phpBBUser.substring(0, phpBBUser.indexOf(" ]"));
-					
-					if(!dbInstance.containsValue("sessions", "user_token", phpBBUser + "," + requestHost))
-					{
-						// Nothing amazingly unique to base the User Token on, so we'll settle for the host and user
-						CreateSession(requestID, phpBBUser + "," + requestHost, "<html>phpBB 3.x installation on<br><font size=5>" + requestHost + "</font><br>User: " + phpBBUser, null);
+					    	try
+						    {	
+					    		engine.eval(reader);
+						    }
+					    	catch (ScriptException se)
+					    	{
+					    		System.out.println("Exception in plugin '" + sd + "', stack trace follows:");
+					    		se.printStackTrace();
+					    	}
+					    	reader.close();
+	
+					    	engine.eval("processRequest('" + requestHost + "', '" + requestURI + "', '" + userAgent + "', '" + accept + "', '" + cookieData + "');");
+	
+					    	String description = (String)engine.get("description");
+					    	String profileImageUrl = (String)engine.get("profileImageUrl");
+					    	
+					    	if(description != null && description.length() > 0 && !description.equals("null"))
+					    	{
+					    		if(profileImageUrl != null && profileImageUrl.equals("null"))
+					    			profileImageUrl = null;
+					    		
+
+
+				    			CreateSession(requestID, uniqueID, description, profileImageUrl);
+				    			final int requestToLoad = requestID;
+					    			
+				    			// Session created, check to see if we should auto-load it as well.
+				    			if(((JCheckBox)GetComponentByName("chckbxAutomaticallyLoadSessions")).isSelected())
+				    			{						    							
+				    				LoadRequestIntoBrowser(requestHost, requestURI, userAgent, refererURI, cookieData, authorization);
+				    			}
+					    		
+					    		// A match has been made against this request. Exit to prevent other
+					    		// detectors from needlessly using system resources.
+					    		break;
+					    	}
+						}
 					}
+				} catch (Exception e1)
+				{
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
 				}
-				
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			}
+		});
+		
+		analyzeRequestThread.start();
+	}
+	
+	private void HandleClient(String macAddress)
+	{
+		try
+		{
+			if(!dbInstance.containsValue("clients", "mac", macAddress))
+			{
+				dbInstance.createClient(macAddress);
 			}
 		}
-		
-		// Drupal
-		else if(cookieData.contains("SESS") && cookieData.contains("has_js="))
+		catch (Exception e)
 		{
-			try {
-				String content = readURL("http://" + requestHost + requestURI, userAgent, accept, cookieData);
-				
-				if(content.contains("Log out "))
-				{
-					// Definite session found, get user name
-					int logOutPosition = content.indexOf("Log out ");
-					String drupalUser = content.substring(logOutPosition + 8);
-					drupalUser = drupalUser.substring(0, drupalUser.indexOf("<"));
-					
-					if(!dbInstance.containsValue("sessions", "user_token", drupalUser + "," + requestHost))
-					{
-						// Nothing amazingly unique to base the User Token on, so we'll settle for the host and user
-						CreateSession(requestID, drupalUser + "," + requestHost, "<html>Drupal installation on<br><font size=5>" + requestHost + "</font><br>User: " + drupalUser, null);
-					}
-				}
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}			
+			// Do nothing
 		}
 	}
 	
@@ -705,9 +632,13 @@ public class CookieCadgerInterface extends JFrame
 						continue;
 					}
 				}
-				
-				macListModel.addElement(new EnhancedJListItem(-1, s, null));
-				UpdateDescriptionForMac(s);
+
+			    if(!macListModel.contains(s))
+			    {
+			    	macListModel.addElement(new EnhancedJListItem(-1, s, null));
+			    }
+			    
+			    UpdateDescriptionForMac(s);
 			}
 		}
 		catch (SQLException e)
@@ -801,7 +732,6 @@ public class CookieCadgerInterface extends JFrame
 				}
 
 				int requestID = new Integer(ids.get(i));
-				//String idFormatted = String.format("%4d", requestID);
 				String uri = uris.get(i);
 				
 				// If showing all domains in the request list, make sure the full request URL gets displayed
@@ -811,8 +741,7 @@ public class CookieCadgerInterface extends JFrame
 					String domain = dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
 					uri = domain + uri;
 				}
-				
-				//requestListModel.addElement("#" + idFormatted + " @ " + dateString + ": " + uri);
+
 				requestListModel.addElement(new EnhancedJListItem(requestID, dateString + ": " + uri, null));
 				
 				UpdateDescriptionForRequest(requestID);
@@ -856,9 +785,25 @@ public class CookieCadgerInterface extends JFrame
 		}
 		
 		try {
-			String notesTxt = htmlOpen + fontOpen + boldOpen + "IP Address: " + boldClose + dbInstance.getStringValue("clients", "ip", "mac", macAddress);
 			String netbiosHost = dbInstance.getStringValue("clients", "netbios_hostname", "mac", macAddress);
 			String mdnsHost = dbInstance.getStringValue("clients", "mdns_hostname", "mac", macAddress);
+			String ipv4Address = dbInstance.getStringValue("clients", "ipv4_address", "mac", macAddress);
+			String ipv6Address = dbInstance.getStringValue("clients", "ipv6_address", "mac", macAddress);
+			
+			String notesTxt = htmlOpen + fontOpen;
+			
+			if(!ipv4Address.isEmpty())
+			{
+				notesTxt = notesTxt + boldOpen + "IPv4 Address: " + boldClose + ipv4Address;
+			}
+			
+			if(!ipv6Address.isEmpty())
+			{
+				if(!ipv4Address.isEmpty()) // If there was an ipv4 address, add newline
+					notesTxt = notesTxt + newLine;
+				
+				notesTxt = notesTxt + boldOpen + "IPv6 Address: " + boldClose + ipv6Address;
+			}
 			
 			if(!netbiosHost.isEmpty())
 			{
@@ -917,7 +862,6 @@ public class CookieCadgerInterface extends JFrame
 			
 			long timeStamp = new Long(timeRecorded);
 			Date then = new Date((long)timeStamp * 1000);		
-			SimpleDateFormat fmt = new SimpleDateFormat("yyyyMMdd");
 			String dateString = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(then);
 			
 			String uri = dbInstance.getStringValue("requests", "uri", "id", Integer.toString(request));
@@ -928,6 +872,7 @@ public class CookieCadgerInterface extends JFrame
 			notesTxt = notesTxt + newLine + boldOpen + "URI: " + boldClose + uri;
 			String userAgent = dbInstance.getStringValue("requests", "useragent", "id", Integer.toString(request));
 			String referer = dbInstance.getStringValue("requests", "referer", "id", Integer.toString(request));
+			String authBasic = dbInstance.getStringValue("requests", "auth_basic", "id", Integer.toString(request));
 			String cookies = dbInstance.getStringValue("requests", "cookies", "id", Integer.toString(request));
 			
 			if(!userAgent.isEmpty())
@@ -944,6 +889,14 @@ public class CookieCadgerInterface extends JFrame
 					referer = referer.substring(0, 86) + boldOpen + " ..." + boldClose;
 				
 				notesTxt = notesTxt + newLine + boldOpen + "Referer: " + boldClose + userAgent;
+			}
+			
+			if(!authBasic.isEmpty())
+			{
+				if(bTruncate && authBasic.length() > 90)
+					authBasic = authBasic.substring(0, 86) + boldOpen + " ..." + boldClose;
+				
+				notesTxt = notesTxt + newLine + boldOpen + "Basic Authorization Credentials: " + boldClose + authBasic;
 			}
 			
 			if(!cookies.isEmpty())
@@ -965,26 +918,43 @@ public class CookieCadgerInterface extends JFrame
 	}
 	
 	// Now we're at the good part.
-	private void LoadCookiesIntoBrowser(String domain, String uri, String useragent, String referer, String cookies, boolean bReplay)
-	{				
-		if(driver == null)
+	private void LoadRequestIntoBrowser(String domain, String uri, String useragent, String referer, String cookies, String authorization)
+	{
+		consoleScrollPane.setVisible(false);
+		loadingRequestProgressBar.setVisible(true);
+	    
+		if(server == null)
 		{
-	        ProxyServer server = new ProxyServer(7878);
-	        Proxy proxy = null;
+			server = new ProxyServer(7878);
 	        
 	        requestIntercept = new RequestInterceptor();
+	        requestIntercept.setRandomization(Integer.toString(localRandomization));
 	        
 	        try {
 				server.start();
 				server.addRequestInterceptor(requestIntercept);
-				server.setDownstreamKbps(1024);
-				proxy = server.seleniumProxy().setSslProxy(null); // Set HTTP proxy, but unset SSL entirely
-				
+				proxy = server.seleniumProxy(); // Set HTTP proxy
+				proxy.setSslProxy(null); // Unset SSL entirely
+;				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}
-	        
+			}	
+		}
+
+		// Ask to get page title
+		// If none, this will Exception and set driver to null as necessary
+		try
+		{
+			driver.getTitle();
+		}
+		catch (Exception e)
+		{
+			driver = null;
+		}
+		
+		if(driver == null)
+		{	        
 			// configure it as a desired capability
 			DesiredCapabilities capabilities = new DesiredCapabilities();
 			capabilities.setCapability(CapabilityType.PROXY, proxy);
@@ -1002,6 +972,11 @@ public class CookieCadgerInterface extends JFrame
         	requestIntercept.setCookies(cookies);
         }
         
+        if(!authorization.isEmpty())
+        {
+        	requestIntercept.setAuthorization(authorization);
+        }
+        
         if(useragent.isEmpty())
         {
         	// None specifically specified, so load from Firefox via the WebDriver
@@ -1015,7 +990,17 @@ public class CookieCadgerInterface extends JFrame
         	requestIntercept.setReferer(referer);
         }
 
-        driver.get("http://" + domain + uri);
+        try
+        {
+        	driver.get("http://" + domain + uri);        	
+        }
+        catch (Exception e)
+        {
+        	// Nothing
+        }
+        
+        loadingRequestProgressBar.setVisible(false);
+        consoleScrollPane.setVisible(true);
 	}
 	
 	private void PrepareToCloseApplication()
@@ -1063,12 +1048,32 @@ public class CookieCadgerInterface extends JFrame
 			}
 		});	    
 		dbInstance = new Sqlite3DB();
-		
 		localRandomization = 1000 + (int)(Math.random() * ((20110 - 1000) + 1));
 		
 		setTitle("Cookie Cadger");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 950, 680);
+		
+        // Ask the user about session detection
+        int sessionDetection = JOptionPane.showConfirmDialog(
+                contentPane,
+                		"Session detection replays web requests in the background and analyzes\n" +
+                		"them for evidence that a user is logged in. Enabling session detection\n" +
+                		"will cause Cookie Cadger to utilize a larger amount of available CPU\n" +
+                		"resources.\n\n" +
+                		"By enabling this feature you also understand that:\n\n" +
+                		"1) Cookie Cadger will (potentially) automatically impersonate any\n" +
+                		"network user without their explicit permission or interaction on your part.\n\n" +
+                		"2) The legality of doing so varies between jurisdictions. It is your\n" +
+                		"responsibility to understand and comply with any applicable laws.\n\n" +
+                		"Would you like to enable session detection?\n ",
+                "Enable Session Detection?",
+                JOptionPane.YES_NO_OPTION);
+        
+        if (sessionDetection == JOptionPane.YES_OPTION)
+        {
+        	bUseSessionDetection = true;
+        }
 		
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -1117,29 +1122,82 @@ public class CookieCadgerInterface extends JFrame
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
 		
-		JTabbedPane tabbedPane = new JTabbedPane();
-		tabbedPane.setBounds(28, 48, 894, 396);
-
-		requestsPanel = new JPanel();
-		requestsPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
-		accountsPanel = new JPanel();
-		requestsPanel.setLayout(null);
-		accountsPanel.setLayout(null);
-		
-		tabbedPane.addTab("Requests", null, requestsPanel, null);
-		tabbedPane.addTab("Recognized Logins", null, accountsPanel, null);
-		
-		JScrollPane sessionsScrollPane = new JScrollPane();
-		sessionsScrollPane.setBounds(2, 2, 886, 366);
-		accountsPanel.add(sessionsScrollPane);
-				
-		contentPane.add(tabbedPane);
-		
 		macListModel = new EnhancedListModel();
 		domainListModel = new EnhancedListModel();
 		requestListModel = new EnhancedListModel();
 		sessionsListModel = new EnhancedListModel();
-		interfaceListModel = new DefaultComboBoxModel();
+		interfaceListModel = new DefaultComboBoxModel<String>();
+		
+		tabbedPane = new JTabbedPane();
+		tabbedPane.setBounds(28, 48, 894, 396);
+
+		requestsPanel = new JPanel();
+		requestsPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+		requestsPanel.setLayout(null);
+		
+		tabbedPane.addTab("Requests", null, requestsPanel, null);
+		
+		if(bUseSessionDetection)
+		{
+			sessionsPanel = new JPanel();
+			sessionsPanel.setLayout(null);
+
+			tabbedPane.addTab("Recognized Sessions", null, sessionsPanel, null);
+		
+			JScrollPane sessionsScrollPane = new JScrollPane();
+			sessionsScrollPane.setBounds(2, 2, 886, 320);
+			sessionsPanel.add(sessionsScrollPane);
+			
+			sessionsList = new EnhancedJList();
+			sessionsList.setLayoutOrientation(JList.HORIZONTAL_WRAP);
+			sessionsList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+			sessionsList.setVisibleRowCount(-1);
+			sessionsList.setModel(sessionsListModel);
+			
+			sessionsScrollPane.setViewportView(sessionsList);
+			
+			JCheckBox chckbxAutomaticallyLoadSessions = new JCheckBox("Automatically Load Sessions Into Browser (Demo Mode)");
+			chckbxAutomaticallyLoadSessions.setBounds(12, 332, 420, 25);
+			chckbxAutomaticallyLoadSessions.setName("chckbxAutomaticallyLoadSessions");
+			sessionsPanel.add(chckbxAutomaticallyLoadSessions);
+			
+			JButton btnLoadSelectedSession = new JButton("Load Selected Session");
+			btnLoadSelectedSession.setBounds(657, 332, 220, 25);
+			sessionsPanel.add(btnLoadSelectedSession);
+			
+			btnLoadSelectedSession.addActionListener(new ActionListener()
+			{
+				public void actionPerformed(ActionEvent arg0)
+				{
+					Thread loadRequestThread = new Thread(new Runnable()
+					{
+						public void run()
+						{
+							EnhancedJListItem listItem = (EnhancedJListItem)sessionsList.getSelectedValue();
+							int requestID = listItem.getID();
+							
+							try {
+								int domainID = dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
+								String domain = dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
+								String uri = dbInstance.getStringValue("requests", "uri", "id", Integer.toString(requestID));
+								String useragent = dbInstance.getStringValue("requests", "useragent", "id", Integer.toString(requestID));
+								String referer = dbInstance.getStringValue("requests", "referer", "id", Integer.toString(requestID));
+								String authorization = dbInstance.getStringValue("requests", "authorization", "id", Integer.toString(requestID));
+								String cookies = dbInstance.getStringValue("requests", "cookies", "id", Integer.toString(requestID));
+								
+								LoadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+					});
+					
+					loadRequestThread.start();
+				}
+			});
+		}
+		contentPane.add(tabbedPane);
 		
 		txtConsole = new JTextArea();
 		txtConsole.setBackground(UIManager.getColor("Panel.background"));
@@ -1151,14 +1209,14 @@ public class CookieCadgerInterface extends JFrame
 		contentPane.add(consoleScrollPane);
 		consoleScrollPane.setViewportView(txtConsole);
 		
-		JList sessionsList = new EnhancedJList();
-		sessionsList.setLayoutOrientation(JList.HORIZONTAL_WRAP);
-		sessionsList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
-		sessionsList.setVisibleRowCount(-1);
-
-		sessionsScrollPane.setViewportView(sessionsList);
-		
-		sessionsList.setModel(sessionsListModel);
+		loadingRequestProgressBar = new JProgressBar(JProgressBar.HORIZONTAL);
+	    loadingRequestProgressBar.setStringPainted(true);
+	    loadingRequestProgressBar.setString("Loading request into browser, please wait...");
+	    loadingRequestProgressBar.setFont(new Font("Verdana", Font.BOLD, 22));
+	    loadingRequestProgressBar.setIndeterminate(true);
+	    loadingRequestProgressBar.setVisible(false);
+	    loadingRequestProgressBar.setBounds(consoleScrollPane.getBounds());
+	    contentPane.add(loadingRequestProgressBar);
 		
 		JButton btnMonitorOnSelected = new JButton("Select An Interface");
 		btnMonitorOnSelected.setEnabled(false);
@@ -1166,7 +1224,7 @@ public class CookieCadgerInterface extends JFrame
 		btnMonitorOnSelected.setBounds(681, 14, 240, 25);
 		contentPane.add(btnMonitorOnSelected);
 		
-		JComboBox interfaceListComboBox = new JComboBox();
+		JComboBox<String> interfaceListComboBox = new JComboBox<String>();
 		interfaceListComboBox.setName("interfaceListComboBox");
 		interfaceListComboBox.setBounds(28, 14, 626, 24);
 		contentPane.add(interfaceListComboBox);
@@ -1186,7 +1244,7 @@ public class CookieCadgerInterface extends JFrame
 			{
 				if(!e.getValueIsAdjusting() && !macList.isSelectionEmpty())
 				{
-					JList list = (JList)e.getSource();
+					JList<?> list = (JList<?>)e.getSource();
 					String item = ((EnhancedJListItem)list.getSelectedValue()).toString();
 					ChangeDomainList(item);
 				}
@@ -1217,7 +1275,7 @@ public class CookieCadgerInterface extends JFrame
 			{
 				if(!e.getValueIsAdjusting() && !macList.isSelectionEmpty() && !domainList.isSelectionEmpty())
 				{
-					JList list = (JList)e.getSource();
+					JList<?> list = (JList<?>)e.getSource();
 					String item = ((EnhancedJListItem)list.getSelectedValue()).toString();
 					String macAddress = ((EnhancedJListItem)macList.getSelectedValue()).toString();
 					ChangeRequestList(macAddress, item);
@@ -1265,7 +1323,7 @@ public class CookieCadgerInterface extends JFrame
 	            if (SwingUtilities.isRightMouseButton(me))
 	            {
 	            	// Disable ToolTip for 3 seconds
-	            	SwingWorker worker = new SwingWorker() {            
+	            	SwingWorker<?, ?> worker = new SwingWorker<Object, Object>() {            
 	                	@Override            
 	                    public Object doInBackground() {
 	                        try {
@@ -1322,7 +1380,7 @@ public class CookieCadgerInterface extends JFrame
 	            if (SwingUtilities.isRightMouseButton(me))
 	            {
 	            	// Disable ToolTip for 3 seconds
-	            	SwingWorker worker = new SwingWorker() {            
+	            	SwingWorker<?, ?> worker = new SwingWorker<Object, Object>() {            
 	                	@Override            
 	                    public Object doInBackground() {
 	                        try {
@@ -1363,6 +1421,11 @@ public class CookieCadgerInterface extends JFrame
 		JButton btnReplayRequest = new JButton("Replay This Request");
 		btnReplayRequest.setBounds(634, 342, 254, 25);
 		requestsPanel.add(btnReplayRequest);
+		
+		JLabel lblSoftwareUpdateAvailable = new JLabel("");
+		lblSoftwareUpdateAvailable.setName("lblSoftwareUpdateAvailable");
+		lblSoftwareUpdateAvailable.setBounds(28, 606, 895, 15);
+		contentPane.add(lblSoftwareUpdateAvailable);
 		
 		/*
 		 * Create and associate the ActionListeners for all objects
@@ -1513,7 +1576,7 @@ public class CookieCadgerInterface extends JFrame
 				}
 				else if(!domainList.isSelectionEmpty())
 				{
-					Thread loadCookiesThread = new Thread(new Runnable()
+					Thread loadRequestThread = new Thread(new Runnable()
 					{
 						public void run()
 						{
@@ -1525,9 +1588,10 @@ public class CookieCadgerInterface extends JFrame
 								String uri = "";
 								String useragent = "";
 								String referer = "";
+								String authorization = "";
 								String cookies = dbInstance.getStringValue("requests", "cookies", "id", Integer.toString(requestID));
 								
-								LoadCookiesIntoBrowser(domain, uri, useragent, referer, cookies, false);
+								LoadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
 							} catch (SQLException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
@@ -1535,7 +1599,7 @@ public class CookieCadgerInterface extends JFrame
 						}
 					});
 		
-					loadCookiesThread.start();
+					loadRequestThread.start();
 				}
 			}
 		});
@@ -1546,7 +1610,7 @@ public class CookieCadgerInterface extends JFrame
 			{
 				if(!requestList.isSelectionEmpty())
 				{					
-					Thread loadCookiesThread = new Thread(new Runnable()
+					Thread loadRequestThread = new Thread(new Runnable()
 					{
 						public void run()
 						{
@@ -1561,9 +1625,10 @@ public class CookieCadgerInterface extends JFrame
 								String uri = dbInstance.getStringValue("requests", "uri", "id", Integer.toString(requestID));
 								String useragent = dbInstance.getStringValue("requests", "useragent", "id", Integer.toString(requestID));
 								String referer = dbInstance.getStringValue("requests", "referer", "id", Integer.toString(requestID));
+								String authorization = dbInstance.getStringValue("requests", "authorization", "id", Integer.toString(requestID));
 								String cookies = dbInstance.getStringValue("requests", "cookies", "id", Integer.toString(requestID));
 								
-								LoadCookiesIntoBrowser(domain, uri, useragent, referer, cookies, true);
+								LoadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
 							} catch (SQLException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
@@ -1571,12 +1636,11 @@ public class CookieCadgerInterface extends JFrame
 						}
 					});
 		
-					loadCookiesThread.start();
+					loadRequestThread.start();
 				}
 			}
 		});
-
-
+		
 		interfaceListComboBox.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e)
 			{
@@ -1588,7 +1652,7 @@ public class CookieCadgerInterface extends JFrame
 		btnMonitorOnSelected.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e)
 			{
-				int selectedInterface = ((JComboBox)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
+				int selectedInterface = ((JComboBox<?>)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
 				if(selectedInterface == -1)
 					return;
 					
@@ -1607,7 +1671,7 @@ public class CookieCadgerInterface extends JFrame
 						public void run()
 						{
 							try {
-								int selectedInterface = ((JComboBox)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
+								int selectedInterface = ((JComboBox<?>)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
 								StartCapture(selectedInterface, "");
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
@@ -1660,6 +1724,66 @@ public class CookieCadgerInterface extends JFrame
 		}
 		
 		interfaceListComboBox.setSelectedIndex(itemToSelect);
+		
+		// Check for software update
+    	SwingWorker<?, ?> updateWorker = new SwingWorker<Object, Object>() {            
+        	@Override            
+            public Object doInBackground()
+        	{
+        		try {
+        			JLabel lblSoftwareUpdateAvailable = ((JLabel)GetComponentByName("lblSoftwareUpdateAvailable"));
+        			
+        			// TODO - make HTTPS (and the correct URL) when the new host is ready 
+					String releasedVersion = readURL("http://www.mattslifebytes.com/files/version.php", "Cookie Cadger, " + version, "text/html", null);
+					
+					lblSoftwareUpdateAvailable.addMouseListener(new MouseAdapter() {
+						@Override
+						public void mouseClicked(MouseEvent e) {
+							try
+							{
+								Desktop.getDesktop().browse(new URI("http://www.google.com"));
+							}
+							catch (Exception ex) {
+								// Do nothing
+							}
+						}
+					});
+					lblSoftwareUpdateAvailable.setForeground(Color.RED);
+					lblSoftwareUpdateAvailable.setText(releasedVersion);
+				}
+        		catch (Exception e)
+        		{
+					// Do nothing
+				}
+        		
+                return null;
+            }
+        };
+        updateWorker.execute();
+        
+        // Load all plugin classes
+        try
+        {
+			File folder = new File(executionPath + "/plugins/");
+			File[] listOfFiles = folder.listFiles();
+			 
+			for (int i = 0; i < listOfFiles.length && listOfFiles[i].isFile(); i++)
+			{ 
+				String pluginClassFilename = listOfFiles[i].getName();
+				if (pluginClassFilename.toLowerCase().endsWith(".js"))
+				{					
+					sessionDetectors.add(executionPath + "/plugins/" + pluginClassFilename);
+				}
+			}
+        }
+        catch(NullPointerException npe)
+        {
+        	// Do nothing
+        }
+        catch(Exception e)
+        {
+        	e.printStackTrace();
+        }
 	}
 	
 	private void InitializeDevices()
@@ -1744,16 +1868,9 @@ public class CookieCadgerInterface extends JFrame
 	}
 
 	private void CreateSession(int requestID, String userToken, String description, String profilePhotoURL)
-	{
-		try {
-			dbInstance.createSession(requestID, userToken, description, profilePhotoURL);
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+	{		
 		// Update UI
-		EnhancedJListItem item = new EnhancedJListItem(-1, description, null);
+		EnhancedJListItem item = new EnhancedJListItem(requestID, description, null);
 		
 		// Make image
 		if(profilePhotoURL != null && !profilePhotoURL.isEmpty())
@@ -1770,7 +1887,23 @@ public class CookieCadgerInterface extends JFrame
 			}
 		}
 		
-		sessionsListModel.addElement(item);
+		try
+		{
+			// Why check again? Well, the querying of all this can be time consuming,
+			// meaning that other requests could have already taken care of it.
+			if(!dbInstance.containsValue("sessions", "user_token", userToken))
+			{
+				sessionsListModel.addElement(item);
+				
+				// Update DB
+				dbInstance.createSession(requestID, userToken, description, profilePhotoURL);
+			}
+		}
+		catch (SQLException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	private void Console(String text, boolean bAutoScroll)
@@ -1786,9 +1919,9 @@ public class CookieCadgerInterface extends JFrame
 		System.out.println(text);
 	}
 	
-	private HashMap CreateComponentMap(JPanel panel)
+	private HashMap<String, Component> CreateComponentMap(JPanel panel)
 	{
-		HashMap componentMap = new HashMap<String,Component>();
+		HashMap<String, Component> componentMap = new HashMap<String,Component>();
         Component[] components = panel.getComponents();
         for (int i=0; i < components.length; i++)
         {
@@ -1820,14 +1953,16 @@ public class CookieCadgerInterface extends JFrame
         else return null;
 	}
 	
-	private static String readURL(String urlString, String userAgent, String accept, String cookies) throws Exception
-	{	
+	public static String readURL(String urlString, String userAgent, String accept, String cookies) throws Exception
+	{		
 	    BufferedReader reader = null;
 	    try {
 	        URL url = new URL(urlString);
 	        URLConnection urlConn = url.openConnection();
 	        
-        	urlConn.setRequestProperty("Cookie", cookies);	        
+	        if(cookies != null && !cookies.isEmpty())
+	        	urlConn.setRequestProperty("Cookie", cookies);
+	        
 	        urlConn.setRequestProperty("User-Agent", userAgent);
 	        urlConn.setRequestProperty("Accept", accept + ", " + Integer.toString(localRandomization));
 	        
@@ -1847,5 +1982,21 @@ public class CookieCadgerInterface extends JFrame
 	    }
 	    
 	    return "";
+	}
+	
+	public static String hashMD5(String text)
+	{
+		String hashword = null;
+		try
+		{
+			MessageDigest md5 = MessageDigest.getInstance("MD5");
+			md5.update(text.getBytes());
+			BigInteger hash = new BigInteger(1, md5.digest());
+			hashword = hash.toString(16);
+		} catch (NoSuchAlgorithmException nsae) {
+			// ignore
+		}
+		
+		return hashword;
 	}
 }

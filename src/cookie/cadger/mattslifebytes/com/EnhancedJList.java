@@ -38,7 +38,6 @@ public class EnhancedJList extends JList
     private boolean drawStripes = false;
     private ArrayList<String> highlightStrings = new ArrayList<String>();
     private ArrayList<Color> highlightColors = new ArrayList<Color>();
-    private Sqlite3DB dbInstance = null;
     
     public EnhancedJList( )
     {
@@ -114,7 +113,7 @@ public class EnhancedJList extends JList
         	@Override            
             public Object doInBackground() {
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(10000);
                 } catch (InterruptedException e) { /*Who cares*/ }
                 return null;
             }

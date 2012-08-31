@@ -106,9 +106,19 @@ public class SortedListModel extends AbstractListModel {
      * @param index index of an entry in the sorted model
      * @return element in the original model to which our entry points
      */
-    public Object getElementAt(int index) throws IndexOutOfBoundsException {
-        int modelIndex = toUnsortedModelIndex(index);
-        Object element = unsortedModel.getElementAt(modelIndex);
+    public Object getElementAt(int index) throws IndexOutOfBoundsException
+    {
+    	Object element = null;
+    	try
+    	{
+	        int modelIndex = toUnsortedModelIndex(index);
+	        element = unsortedModel.getElementAt(modelIndex);
+    	}
+    	catch(Exception e)
+    	{
+    		// Do nothing
+    	}
+    	
         return element;
     }
     
@@ -131,8 +141,15 @@ public class SortedListModel extends AbstractListModel {
      */
     public int toUnsortedModelIndex(int index) throws IndexOutOfBoundsException {
         int modelIndex = -1;
-        SortedListEntry entry = sortedModel.get(index);
-        modelIndex = entry.getIndex();
+        try
+        {
+        	SortedListEntry entry = sortedModel.get(index);
+        	modelIndex = entry.getIndex();
+        }
+        catch(Exception e)
+        {
+        	// Do nothing
+        }
         return modelIndex;
         
     }
