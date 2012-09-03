@@ -133,57 +133,64 @@ public class EnhancedJList extends JList
     /** Add zebra stripes to the background. */
     public void paintComponent( Graphics g )
     {
-        drawStripes = (getLayoutOrientation( )==VERTICAL) && isOpaque( );
-        //drawStripes = true;
-        if ( !drawStripes )
+        try
+	    {
+	        drawStripes = (getLayoutOrientation( )==VERTICAL) && isOpaque( );
+	        //drawStripes = true;
+	        if ( !drawStripes )
+	        {
+	            super.paintComponent( g );
+	            return;
+	        }
+
+	        // Paint zebra background stripes
+	        updateZebraColors( );
+	        final Insets insets = getInsets( );
+	        final int w   = getWidth( )  - insets.left - insets.right;
+	        final int h   = getHeight( ) - insets.top  - insets.bottom;
+	        final int x   = insets.left;
+	        int y         = insets.top;
+	        int nRows     = 0;
+	        int startRow  = 0;
+	        int rowHeight = getFixedCellHeight( );
+	        if ( rowHeight > 0 )
+	            nRows = h / rowHeight;
+	        else
+	        {
+	            // Paint non-uniform height rows first
+	            final int nItems = getModel( ).getSize( );
+	            rowHeight = 17; // A default for empty lists
+	            for ( int i = 0; i < nItems; i++, y+=rowHeight )
+	            {
+	                rowHeight = getCellBounds( i, i ).height;
+	                g.setColor( rowColors[i&1] );
+	                g.fillRect( x, y, w, rowHeight );
+	            }
+	            // Use last row height for remainder of list area
+	            nRows    = nItems + (insets.top + h - y) / rowHeight;
+	            startRow = nItems;
+	        }
+	        for ( int i = startRow; i < nRows; i++, y+=rowHeight )
+	        {
+	            g.setColor( rowColors[i&1] );
+	            g.fillRect( x, y, w, rowHeight );
+	        }
+	        final int remainder = insets.top + h - y;
+	        if ( remainder > 0 )
+	        {
+	            g.setColor( rowColors[nRows&1] );
+	            g.fillRect( x, y, w, remainder );
+	        }
+	        
+	        // Paint component
+	        setOpaque( false );
+	        super.paintComponent( g );
+	        setOpaque( true );
+	    }
+        catch (Exception e)
         {
-            super.paintComponent( g );
-            return;
+        	// Do nothing
         }
- 
-        // Paint zebra background stripes
-        updateZebraColors( );
-        final Insets insets = getInsets( );
-        final int w   = getWidth( )  - insets.left - insets.right;
-        final int h   = getHeight( ) - insets.top  - insets.bottom;
-        final int x   = insets.left;
-        int y         = insets.top;
-        int nRows     = 0;
-        int startRow  = 0;
-        int rowHeight = getFixedCellHeight( );
-        if ( rowHeight > 0 )
-            nRows = h / rowHeight;
-        else
-        {
-            // Paint non-uniform height rows first
-            final int nItems = getModel( ).getSize( );
-            rowHeight = 17; // A default for empty lists
-            for ( int i = 0; i < nItems; i++, y+=rowHeight )
-            {
-                rowHeight = getCellBounds( i, i ).height;
-                g.setColor( rowColors[i&1] );
-                g.fillRect( x, y, w, rowHeight );
-            }
-            // Use last row height for remainder of list area
-            nRows    = nItems + (insets.top + h - y) / rowHeight;
-            startRow = nItems;
-        }
-        for ( int i = startRow; i < nRows; i++, y+=rowHeight )
-        {
-            g.setColor( rowColors[i&1] );
-            g.fillRect( x, y, w, rowHeight );
-        }
-        final int remainder = insets.top + h - y;
-        if ( remainder > 0 )
-        {
-            g.setColor( rowColors[nRows&1] );
-            g.fillRect( x, y, w, remainder );
-        }
- 
-        // Paint component
-        setOpaque( false );
-        super.paintComponent( g );
-        setOpaque( true );
     }
  
     /** Wrap a cell renderer to add zebra stripes behind list cells. */

@@ -47,4 +47,15 @@ public class EnhancedListModel extends DefaultListModel
 		
 		return -1;
 	}
+	
+	public Object getElementById (int index)
+	{
+		for(int i = 0; i < getSize(); i++)
+		{
+			if(((EnhancedJListItem)getElementAt(i)).getID() == index)
+				return (EnhancedJListItem)getElementAt(i);
+		}
+		
+		return null;
+	}
 }

@@ -10,6 +10,11 @@ function processRequest(host, uri, userAgent, accept, cookies)
 
 	if((host === "www.facebook.com" || host === "facebook.com") && cookies.indexOf("c_user") != -1)
 	{
+		if(uri.indexOf("ajax/") != -1 || uri.indexOf("ai.php") != -1)
+		{
+			return;
+		}
+
 		var c_userPosition = cookies.indexOf("c_user=");
 		var facebookUserID = cookies.substring(c_userPosition + 7);
 
