@@ -7,6 +7,7 @@ public class EnhancedJListItem
 	private int recordNumber;
 	private String name;
 	private String description;
+	private String thumbnailImageURL;
 	private Image thumbnailImage;
 	
 	public EnhancedJListItem(int rn, String nm, String desc)  
@@ -36,6 +37,11 @@ public class EnhancedJListItem
 		thumbnailImage = img;
 	}
 	
+	public void setProfileImageURL(String url)
+	{
+		thumbnailImageURL = url;
+	}
+	
 	public boolean hasThumbnail()
 	{
 		if(thumbnailImage == null)
@@ -47,6 +53,11 @@ public class EnhancedJListItem
 	public Image getThumbnail()
 	{
 		return thumbnailImage;
+	}
+	
+	public String getProfileImageURL()
+	{
+		return thumbnailImageURL;
 	}
 	
 	public int getID()

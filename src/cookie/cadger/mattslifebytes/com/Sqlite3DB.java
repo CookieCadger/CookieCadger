@@ -70,10 +70,10 @@ public class Sqlite3DB
 	    return false;
 	}
 	
-	public int getNewestRequestID(int domain_id) throws SQLException
+	public int getNewestRequestID(int client_id, int domain_id) throws SQLException
 	{
 	    Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select id from requests where domain_id = '" + Integer.toString(domain_id) + "' order by id desc limit 1");
+	    ResultSet rs = stat.executeQuery("select id from requests where client_id = '" + Integer.toString(client_id) + "' and domain_id = '" + Integer.toString(domain_id) + "' order by id desc limit 1");
 	    
 	    int value = rs.getInt("id");
 	    rs.close();
@@ -244,6 +244,36 @@ public class Sqlite3DB
 	    return value;
 	}
 	
+	public EnhancedJListItem[] getSessions() throws SQLException
+	{
+		Statement stat = dbInstance.createStatement();
+	    ResultSet rs = stat.executeQuery("select count(id) as count from sessions where 1;");
+	    int numSessions = rs.getInt("count");
+	    
+	    EnhancedJListItem[] items = new EnhancedJListItem [numSessions];
+	    int i = 0;
+	    
+		stat = dbInstance.createStatement();
+	    rs = stat.executeQuery("select id, description, profile_photo_url from sessions where 1;");
+
+	    while (rs.next())
+	    {
+	        // Get the data from the row using the column index
+	    	int id = rs.getInt("id");
+	        String description = rs.getString("description");
+	        String profile_photo_url = rs.getString("profile_photo_url");
+	        
+	        items[i] = new EnhancedJListItem(id, description, null);
+	        items[i].setProfileImageURL(profile_photo_url);
+	        i++;
+	    }
+	    
+	    rs.close();
+	    stat.close();
+	    
+	    return items;
+	}
+	
 	public String[] getDomains(String macAddress) throws SQLException
 	{
 		Statement stat = dbInstance.createStatement();
@@ -261,6 +291,18 @@ public class Sqlite3DB
 		Statement stat = dbInstance.createStatement();
 	    ResultSet rs = stat.executeQuery("select count(distinct d.name) as num_domains from domains d inner join requests r on d.id = r.domain_id inner join clients c on c.id = r.client_id where c.mac_address = '" + macAddress + "';");
 	    int numDomains = rs.getInt("num_domains");
+	    
+	    rs.close();
+	    stat.close();
+	    
+	    return numDomains;
+	}
+	
+	public int getClientCount() throws SQLException
+	{
+		Statement stat = dbInstance.createStatement();
+	    ResultSet rs = stat.executeQuery("select count(id) as num_clients from clients where 1;");
+	    int numDomains = rs.getInt("num_clients");
 	    
 	    rs.close();
 	    stat.close();
@@ -366,11 +408,13 @@ public class Sqlite3DB
 	 * by index name (i.e. "quantity", "price", etc.) of the ResultSet instance.
 	 * http://www.brilliantsheep.com/converting-database-resultset-to-string-array-in-java/ 
 	 */
-	private String[] toStringArray(ResultSet resultSet, String columnLabel) {
+	private String[] toStringArray(ResultSet resultSet, String columnLabel)
+	{
 	    LinkedList<String> resultList = new LinkedList<String>();
 	 
 	    try {
-	        while (resultSet.next()) {
+	        while (resultSet.next())
+	        {
 	            resultList.add(resultSet.getString(columnLabel));
 	        }
 	    } catch (SQLException e) {
