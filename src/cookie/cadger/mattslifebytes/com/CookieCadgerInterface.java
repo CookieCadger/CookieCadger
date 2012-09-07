@@ -115,7 +115,6 @@ import cookie.cadger.mattslifebytes.com.SortedListModel.SortOrder;
 
 public class CookieCadgerInterface extends JFrame
 {
-	private static final String version = "1.0";
 	private static final long serialVersionUID = 8342026239392268208L;
 	private static int localRandomization;
 	private static String executionPath = System.getProperty("user.dir").replace("\\", "/");
@@ -1174,7 +1173,7 @@ public class CookieCadgerInterface extends JFrame
 	}
 	
 	public CookieCadgerInterface(String pathToTshark) throws Exception
-	{
+	{		
 		this.pathToTshark = pathToTshark;
 		
 		setResizable(false);
@@ -1727,6 +1726,7 @@ public class CookieCadgerInterface extends JFrame
 			public void actionPerformed(ActionEvent arg0) {
 				PrepareToCloseApplication();
 				dispose();
+				System.exit(0);
 			}
 		});
 
@@ -1773,33 +1773,7 @@ public class CookieCadgerInterface extends JFrame
 		mntmAbout.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e)
 			{
-				JOptionPane.showMessageDialog(null, "Cookie Cadger (v"+ version +")\n\n" +
-						"Copyright (c) 2012, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>\n" +
-						"All rights reserved.\n" +
-						"\n" +
-						"Redistribution and use in source and binary forms, with or without\n" +
-						"modification, are permitted provided that the following conditions are met: \n" +
-						"\n" +
-						"1. Redistributions of source code must retain the above copyright notice, this\n" +
-						"   list of conditions and the following disclaimer. \n" +
-						"2. Redistributions in binary form must reproduce the above copyright notice,\n" +
-						"   this list of conditions and the following disclaimer in the documentation\n" +
-						"   and/or other materials provided with the distribution. \n" +
-						"3. By using this software, you agree to provide the Software Creator (Matthew\n" +
-						"   Sullivan) exactly one drink of his choice under $10 USD in value if he\n" +
-						"   requests it of you.\n" +
-						"\n" +
-						"THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND\n" +
-						"ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED\n" +
-						"WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\n" +
-						"DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR\n" +
-						"ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES\n" +
-						"(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;\n" +
-						"LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND\n" +
-						"ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n" +
-						"(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\n" +
-						"SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-						);
+				CookieCadgerUtils.DisplayAboutWindow();
 			}
 		});
 
@@ -1940,7 +1914,7 @@ public class CookieCadgerInterface extends JFrame
 		InitializeDevices();
 		
 		// Name and license
-		Console("\n\nCookie Cadger (v"+ version +")\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the terms of the FreeBSD license.\n", true);
+		Console("\n\nCookie Cadger (v"+ CookieCadgerUtils.version +")\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the terms of the FreeBSD license.\n", true);
 		
 		// Populate the ComboBox	
 		for (int i = 0; i < deviceName.size(); i++)
@@ -1983,7 +1957,7 @@ public class CookieCadgerInterface extends JFrame
         			JLabel lblSoftwareUpdateAvailable = ((JLabel)GetComponentByName("lblSoftwareUpdateAvailable"));
         			
         			// TODO - make HTTPS (and the correct URL) when the new host is ready 
-					String releasedVersion = readURL("http://www.mattslifebytes.com/files/version.php", "Cookie Cadger, " + version, "text/html", null);
+					String releasedVersion = readURL("http://www.mattslifebytes.com/files/version.php", "Cookie Cadger, " + CookieCadgerUtils.version, "text/html", null);
 					
 					lblSoftwareUpdateAvailable.addMouseListener(new MouseAdapter() {
 						@Override
