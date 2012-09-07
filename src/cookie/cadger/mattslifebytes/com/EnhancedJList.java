@@ -73,12 +73,7 @@ public class EnhancedJList extends JList
     		}
     	});
     }
-/*  
-    public void setDatabase(Sqlite3DB db)
-    {
-    	dbInstance = db;
-    }
-*/
+
     public EnhancedJList( ListModel dataModel )
     {
         super( dataModel );
@@ -204,8 +199,17 @@ public class EnhancedJList extends JList
         {
             final Component c = ren.getListCellRendererComponent(
                 list, value, index, isSelected, cellHasFocus );
-            if ( !isSelected && drawStripes )
+            
+            if (isSelected)
+            {
+            	// Set our own selection color to keep this from
+            	// looking like crap on OS X
+            	c.setBackground(Color.LIGHT_GRAY);
+            }
+            else if ( drawStripes )
+            {
                 c.setBackground( rowColors[index&1] );
+            }
             
             // Yes, we must highlight this
             String strVal = ((EnhancedJListItem)value).toString();

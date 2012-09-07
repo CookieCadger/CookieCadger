@@ -1005,7 +1005,7 @@ public class CookieCadgerInterface extends JFrame
 			if(bTruncate && uri.length() > 90)
 				uri = uri.substring(0, 86) + boldOpen + " ..." + boldClose;
 			 
-			String notesTxt = htmlOpen + fontOpen + "ID: " + requestID + newLine + boldOpen + "Date: " + boldClose + dateString;
+			String notesTxt = htmlOpen + fontOpen + boldOpen + "Date: " + boldClose + dateString;
 			notesTxt = notesTxt + newLine + boldOpen + "URI: " + boldClose + uri;
 			String userAgent = dbInstance.getStringValue("requests", "useragent", "id", Integer.toString(requestID));
 			String referer = dbInstance.getStringValue("requests", "referer", "id", Integer.toString(requestID));
@@ -1268,7 +1268,7 @@ public class CookieCadgerInterface extends JFrame
 		interfacesListModel = new DefaultComboBoxModel<String>();
 		
 		tabbedPane = new JTabbedPane();
-		tabbedPane.setBounds(28, 48, 894, 396);
+		tabbedPane.setBounds(28, 48, 894, 416);
 
 		requestsPanel = new JPanel();
 		requestsPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -1437,7 +1437,7 @@ public class CookieCadgerInterface extends JFrame
 		txtConsole.setEditable(false);
 		
 		consoleScrollPane = new JScrollPane();
-		consoleScrollPane.setBounds(28, 455, 895, 150);
+		consoleScrollPane.setBounds(28, 475, 895, 130);
 		contentPane.add(consoleScrollPane);
 		consoleScrollPane.setViewportView(txtConsole);
 		
@@ -1463,7 +1463,7 @@ public class CookieCadgerInterface extends JFrame
 		interfaceListComboBox.setModel(interfacesListModel);
 		
 		JScrollPane macListScrollPanel = new JScrollPane();
-		macListScrollPanel.setBounds(2, 2, 162, 328);
+		macListScrollPanel.setBounds(22, 2, 152, 328);
 		requestsPanel.add(macListScrollPanel);
 		
 		clientsList = new EnhancedJList();
@@ -1494,7 +1494,7 @@ public class CookieCadgerInterface extends JFrame
 		requestsPanel.add(chckbxOnlyShowHosts);
 		
 		JScrollPane domainListScrollPane = new JScrollPane();
-		domainListScrollPane.setBounds(170, 2, 200, 366);
+		domainListScrollPane.setBounds(180, 2, 200, 366);
 		requestsPanel.add(domainListScrollPane);
 		
 		domainsList = new EnhancedJList();
@@ -1520,7 +1520,7 @@ public class CookieCadgerInterface extends JFrame
 		domainsList.setModel(domainListModelSorted);
 		
 		JScrollPane requestListScrollPanel = new JScrollPane();
-		requestListScrollPanel.setBounds(376, 2, 512, 336);
+		requestListScrollPanel.setBounds(386, 2, 482, 336);
 		requestsPanel.add(requestListScrollPanel);
 
 		requestsList = new EnhancedJList();
@@ -1646,11 +1646,11 @@ public class CookieCadgerInterface extends JFrame
 	    });
 	    
 		JButton btnLoadDomainCookies = new JButton("Load Domain Cookies");
-		btnLoadDomainCookies.setBounds(376, 342, 254, 25);
+		btnLoadDomainCookies.setBounds(386, 342, 234, 25);
 		requestsPanel.add(btnLoadDomainCookies);
 		
 		JButton btnReplayRequest = new JButton("Replay This Request");
-		btnReplayRequest.setBounds(634, 342, 254, 25);
+		btnReplayRequest.setBounds(633, 342, 234, 25);
 		requestsPanel.add(btnReplayRequest);
 		
 		JLabel lblSoftwareUpdateAvailable = new JLabel("");
@@ -1821,8 +1821,6 @@ public class CookieCadgerInterface extends JFrame
 								int clientID = dbInstance.getIntegerValue("clients", "id", "mac_address", ((EnhancedJListItem)clientsList.getSelectedValue()).toString());
 								int domainID = dbInstance.getIntegerValue("domains", "id", "name", ((EnhancedJListItem)domainsList.getSelectedValue()).toString());
 								int requestID = dbInstance.getNewestRequestID(clientID, domainID);
-
-								System.out.println("Reqesting: " + requestID);
 								
 								String domain = ((EnhancedJListItem)domainsList.getSelectedValue()).toString();
 								String uri = "/";
@@ -1957,7 +1955,7 @@ public class CookieCadgerInterface extends JFrame
 		int itemToSelect = -1;
 		boolean bFinished = false;
 		
-		String[] interfaceNames = { "mon", "wlan", "eth" };
+		String[] interfaceNames = { "mon", "wlan", "en", "eth" };
 		for (String interfaceName : interfaceNames)
 		{
 			for (int i = 0; i < deviceName.size(); i++)
