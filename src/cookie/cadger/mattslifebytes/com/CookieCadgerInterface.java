@@ -522,14 +522,14 @@ public class CookieCadgerInterface extends JFrame
 		
 		if(!bUseSessionDetection) // And that's as far as we'll go
 			return;
-		
+
 		if(!accept.contains("text/html")) // Only glean from text to save resources
 			return;
-		
-		Thread analyzeRequestThread = new Thread(new Runnable()
-		{
-			public void run()
-			{
+
+    	SwingWorker<?, ?> analyzeRequestWorker = new SwingWorker<Object, Object>() {            
+        	@Override            
+            public Object doInBackground()
+        	{
 				// For a unique token, we'll use a quick MD5 of the user MAC and the request host
 				String uniqueID = hashMD5(macAddress + requestHost);
 				
@@ -588,10 +588,11 @@ public class CookieCadgerInterface extends JFrame
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
-			}
-		});
-		
-		analyzeRequestThread.start();
+        		
+                return null;
+            }
+        };
+        analyzeRequestWorker.execute();
 	}
 	
 	private int HandleClient(String macAddress)
@@ -1307,10 +1308,10 @@ public class CookieCadgerInterface extends JFrame
 			{
 				public void actionPerformed(ActionEvent arg0)
 				{
-					Thread loadRequestThread = new Thread(new Runnable()
-					{
-						public void run()
-						{
+			    	SwingWorker<?, ?> loadSessionWorker = new SwingWorker<Object, Object>() {            
+			        	@Override            
+			            public Object doInBackground()
+			        	{
 							EnhancedJListItem listItem = (EnhancedJListItem)sessionsList.getSelectedValue();
 							int sessionID = listItem.getID();
 							
@@ -1330,10 +1331,11 @@ public class CookieCadgerInterface extends JFrame
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
-						}
-					});
-					
-					loadRequestThread.start();
+			        		
+			                return null;
+			            }
+			        };
+			        loadSessionWorker.execute();
 				}
 			});
 			
@@ -1668,11 +1670,12 @@ public class CookieCadgerInterface extends JFrame
 		});
 
 		mntmOpenACapture.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				Thread captureThread = new Thread(new Runnable()
-				{
-					public void run()
-					{
+			public void actionPerformed(ActionEvent arg0)
+			{
+		    	SwingWorker<?, ?> openCaptureWorker = new SwingWorker<Object, Object>() {            
+		        	@Override            
+		            public Object doInBackground()
+		        	{
 						JFileChooser fc = new JFileChooser();
 						FileFilter pcapFilter = new FileNameExtensionFilter("*.pcap | *.cap | *.pcapdump", "pcap", "cap", "pcapdump");
 						fc.addChoosableFileFilter(pcapFilter);
@@ -1692,10 +1695,12 @@ public class CookieCadgerInterface extends JFrame
 								e.printStackTrace();
 							}
 				        }
-					}
-				});
-					
-				captureThread.start();
+		        		
+		                return null;
+		            }
+		        };
+		        
+		        openCaptureWorker.execute();
 			}
 		});
 
@@ -1787,10 +1792,10 @@ public class CookieCadgerInterface extends JFrame
 				}
 				else if(!domainsList.isSelectionEmpty())
 				{
-					Thread loadRequestThread = new Thread(new Runnable()
-					{
-						public void run()
-						{
+			    	SwingWorker<?, ?> loadRequestWorker = new SwingWorker<Object, Object>() {            
+			        	@Override            
+			            public Object doInBackground()
+			        	{
 							try {
 								int clientID = dbInstance.getIntegerValue("clients", "id", "mac_address", ((EnhancedJListItem)clientsList.getSelectedValue()).toString());
 								int domainID = dbInstance.getIntegerValue("domains", "id", "name", ((EnhancedJListItem)domainsList.getSelectedValue()).toString());
@@ -1808,10 +1813,12 @@ public class CookieCadgerInterface extends JFrame
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
-						}
-					});
-		
-					loadRequestThread.start();
+							
+							return null;
+			            }
+			        };
+			        
+			        loadRequestWorker.execute();
 				}
 			}
 		});
@@ -1821,13 +1828,11 @@ public class CookieCadgerInterface extends JFrame
 			public void actionPerformed(ActionEvent arg0)
 			{
 				if(!requestsList.isSelectionEmpty())
-				{					
-					Thread loadRequestThread = new Thread(new Runnable()
-					{
-						public void run()
-						{
-							//String request = (String)requestList.getSelectedValue();
-							//int requestID = Integer.parseInt(request.substring(1, request.indexOf("@")).trim());
+				{
+			    	SwingWorker<?, ?> loadRequestWorker = new SwingWorker<Object, Object>() {            
+			        	@Override            
+			            public Object doInBackground()
+			        	{
 							EnhancedJListItem listItem = (EnhancedJListItem)requestsList.getSelectedValue();
 							int requestID = listItem.getID();
 							
@@ -1845,10 +1850,12 @@ public class CookieCadgerInterface extends JFrame
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
-						}
-					});
-		
-					loadRequestThread.start();
+			        		
+			                return null;
+			            }
+			        };
+			        
+			        loadRequestWorker.execute();
 				}
 			}
 		});
@@ -1878,10 +1885,10 @@ public class CookieCadgerInterface extends JFrame
 				{
 					PrepCapture(selectedInterface);
 					
-					Thread captureThread = new Thread(new Runnable()
-					{
-						public void run()
-						{
+			    	SwingWorker<?, ?> captureWorker = new SwingWorker<Object, Object>() {            
+			        	@Override
+			            public Object doInBackground()
+			        	{
 							try {
 								int selectedInterface = ((JComboBox<?>)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
 								StartCapture(selectedInterface, "");
@@ -1889,10 +1896,12 @@ public class CookieCadgerInterface extends JFrame
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
-						}
-					});
-					
-					captureThread.start();
+							
+							return null;
+			            }
+			        };
+			        
+			        captureWorker.execute();
 				}
 			}
 		});
