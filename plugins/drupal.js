@@ -2,15 +2,17 @@ importPackage(Packages.cookie.cadger.mattslifebytes.com);
 
 var description;
 var profileImageUrl;
+var sessionUri;
 
 function processRequest(host, uri, userAgent, accept, cookies)
 {
 	description = null;
 	profileImageUrl = null;
+	sessionUri = null;
 
 	if(cookies.indexOf("SESS") != -1 && cookies.indexOf("has_js=") != -1)
 	{
-		var pageContent = Packages.cookie.cadger.mattslifebytes.com.CookieCadgerInterface.readURL("http://" + host + uri, userAgent, accept, cookies);
+		var pageContent = Packages.cookie.cadger.mattslifebytes.com.CookieCadgerInterface.readUrl("http://" + host + uri, userAgent, accept, cookies);
 
 		if(pageContent.indexOf('Log out ') != -1)
 		{

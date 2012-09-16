@@ -2,15 +2,17 @@ importPackage(Packages.cookie.cadger.mattslifebytes.com);
 
 var description;
 var profileImageUrl;
+var sessionUri;
 
 function processRequest(host, uri, userAgent, accept, cookies)
 {
 	description = null;
 	profileImageUrl = null;
+	sessionUri = null;
 
 	if((host === "www.reddit.com" || host === "reddit.com") && cookies.indexOf("reddit_session=") != -1)
 	{
-		var pageContent = Packages.cookie.cadger.mattslifebytes.com.CookieCadgerInterface.readURL("http://" + host + uri, userAgent, accept, cookies);
+		var pageContent = Packages.cookie.cadger.mattslifebytes.com.CookieCadgerInterface.readUrl("http://" + host + uri, userAgent, accept, cookies);
 
 		if(pageContent.indexOf('"logged": "') != -1)
 		{
@@ -20,6 +22,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 			redditUsername = redditUsername.substring(0, redditUsername.indexOf('"'));
 
 			description = "<html><font size=5>Reddit</font><br>" + redditUsername;
+			sessionUri = "/";
 		}
 	}
 }

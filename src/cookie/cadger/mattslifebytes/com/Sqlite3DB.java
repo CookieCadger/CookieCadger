@@ -46,9 +46,9 @@ public class Sqlite3DB
 		
 	    // Now create them
 	    stat.executeUpdate("create table requests (id INTEGER PRIMARY KEY, timerecorded INTEGER, uri VARCHAR, useragent VARCHAR, referer VARCHAR, cookies VARCHAR, authorization VARCHAR, auth_basic VARCHAR, domain_id INTEGER, client_id INTEGER);");
-	    stat.executeUpdate("create table clients (id INTEGER PRIMARY KEY, mac_address VARCHAR, ipv4_address VARCHAR, ipv6_address VARCHAR, netbios_hostname VARCHAR, mdns_hostname VARCHAR);");
+	    stat.executeUpdate("create table clients (id INTEGER PRIMARY KEY, mac_address VARCHAR, ipv4_address VARCHAR, ipv6_address VARCHAR, netbios_hostname VARCHAR, mdns_hostname VARCHAR, has_http_requests INTEGER);");
 	    stat.executeUpdate("create table domains (id INTEGER PRIMARY KEY, name VARCHAR);");
-	    stat.executeUpdate("create table sessions (id INTEGER PRIMARY KEY, user_token, description VARCHAR, profile_photo_url VARCHAR, request_id INTEGER);");
+	    stat.executeUpdate("create table sessions (id INTEGER PRIMARY KEY, user_token, description VARCHAR, profile_photo_url VARCHAR, session_uri VARCHAR, request_id INTEGER);");
 	    
 	    stat.close();
 	}
@@ -117,12 +117,13 @@ public class Sqlite3DB
 	// return the ID of the newly created client
 	public int createClient(String macAddress) throws SQLException
 	{
-	    PreparedStatement prep = dbInstance.prepareStatement("insert into clients values(NULL,?,?,?,?,?);");
+	    PreparedStatement prep = dbInstance.prepareStatement("insert into clients values(NULL,?,?,?,?,?,?);");
 	    prep.setString(1, macAddress);
 	    prep.setString(2, "");
 	    prep.setString(3, "");
 	    prep.setString(4, "");
 	    prep.setString(5, "");
+	    prep.setBoolean(6, false);
 	    prep.addBatch();
 	    prep.executeBatch();
 		
@@ -137,13 +138,14 @@ public class Sqlite3DB
 	    return value;
 	}
 
-	public int createSession(int requestID, String userToken, String description, String profilePhotoURL) throws SQLException
+	public int createSession(int requestID, String userToken, String description, String profilePhotoURL, String sessionURI) throws SQLException
 	{
-		PreparedStatement prep = dbInstance.prepareStatement("insert into sessions values(NULL,?,?,?,?);");
+		PreparedStatement prep = dbInstance.prepareStatement("insert into sessions values(NULL,?,?,?,?,?);");
 	    prep.setString(1, userToken);
 	    prep.setString(2, description);
 	    prep.setString(3, profilePhotoURL);
-	    prep.setInt(4, requestID);
+	    prep.setString(4, sessionURI);
+	    prep.setInt(5, requestID);
 	    prep.addBatch();
 	    prep.executeBatch();
 	    
@@ -219,10 +221,17 @@ public class Sqlite3DB
 	    return value;
 	}
 	
-	public String[] getMacs() throws SQLException
+	public String[] getMacs(boolean bOnlyHostsWithData) throws SQLException
 	{
+		String criteria = "1";
+		
+		if(bOnlyHostsWithData)
+		{
+			criteria = "has_http_requests = 1";
+		}
+		
 		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select mac_address from clients where 1;");
+	    ResultSet rs = stat.executeQuery("select mac_address from clients where " + criteria + ";");
 
 	    String[] value = toStringArray(rs, "mac_address");
 	    
@@ -287,7 +296,7 @@ public class Sqlite3DB
 	}
 	
 	public int getDomainCount(String macAddress) throws SQLException
-	{
+	{		
 		Statement stat = dbInstance.createStatement();
 	    ResultSet rs = stat.executeQuery("select count(distinct d.name) as num_domains from domains d inner join requests r on d.id = r.domain_id inner join clients c on c.id = r.client_id where c.mac_address = '" + macAddress + "';");
 	    int numDomains = rs.getInt("num_domains");

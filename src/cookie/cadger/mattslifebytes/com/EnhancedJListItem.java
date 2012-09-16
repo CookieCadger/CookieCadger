@@ -55,7 +55,7 @@ public class EnhancedJListItem
 		return thumbnailImage;
 	}
 	
-	public String getProfileImageURL()
+	public String getProfileImageUrl()
 	{
 		return thumbnailImageURL;
 	}
