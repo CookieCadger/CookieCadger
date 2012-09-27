@@ -51,6 +51,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 import javax.imageio.ImageIO;
+import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -84,19 +85,15 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -117,7 +114,6 @@ import cookie.cadger.mattslifebytes.com.SortedListModel.SortOrder;
 
 public class CookieCadgerInterface extends JFrame
 {
-	private static final long serialVersionUID = 8342026239392268208L;
 	private static int localRandomization;
 	private static String executionPath = System.getProperty("user.dir").replace("\\", "/");
 	
@@ -143,6 +139,9 @@ public class CookieCadgerInterface extends JFrame
 	private Proxy proxy = null;
 	private Sqlite3DB dbInstance = null;
 	private boolean bUseSessionDetection = false;
+	private boolean bUseSessionDetectionSpecified = false;
+	private boolean bUseDemoMode = false;
+	private boolean bUseDemoModeSpecified = false;
 	private RequestInterceptor requestIntercept;
 
 	private void StartCapture(int ethDevNumber, String pcapFile) throws IOException
@@ -384,7 +383,7 @@ public class CookieCadgerInterface extends JFrame
 	private void PrepCapture(int ethDevNumber)
 	{
 		interfacesListModel.removeElementAt(ethDevNumber);
-		interfacesListModel.insertElementAt(deviceName.get(ethDevNumber) + " [" + deviceDescription.get(ethDevNumber) + "] (CURRENTLY CAPTUriNG)", ethDevNumber);
+		interfacesListModel.insertElementAt(deviceName.get(ethDevNumber) + " [" + deviceDescription.get(ethDevNumber) + "] (CURRENTLY CAPTURING)", ethDevNumber);
 		((JComboBox<?>)GetComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
 		
 		bCapturing.set(ethDevNumber, true);
@@ -553,15 +552,20 @@ public class CookieCadgerInterface extends JFrame
 		if(!bUseSessionDetection) // And that's as far as we'll go
 			return;
 
-		if(!accept.contains("text/html")) // Only glean from text to save resources
+		if(cookieData.isEmpty() ||
+				requestHost.isEmpty() ||
+				requestUri.isEmpty() ||
+				accept.isEmpty() ||
+				cookieData.isEmpty() ||
+				requestUri.contains("favicon.ico"))
 			return;
 
     	SwingWorker<?, ?> analyzeRequestWorker = new SwingWorker<Object, Object>() {            
         	@Override            
             public Object doInBackground()
         	{
-				// For a unique token, we'll use a quick MD5 of the user MAC and the request host
-				String uniqueID = hashMD5(macAddress + requestHost);
+				// For a unique token, we'll use a quick concat of the user MAC and the request host
+        		String uniqueID = macAddress + "," + requestHost;
 				
 				// Now check for the token. If new, pass on to handler classes
 				try
@@ -577,23 +581,45 @@ public class CookieCadgerInterface extends JFrame
 						for(String sd : sessionDetectors)
 						{
 					    	FileReader reader = new FileReader(sd);
-
+					    	
 					    	try
 						    {	
 					    		engine.eval(reader);
 						    }
 					    	catch (ScriptException se)
 					    	{
-					    		System.out.println("Exception in plugin '" + sd + "', stack trace follows:");
+					    		System.err.println("Exception in plugin '" + sd + "', stack trace follows:");
 					    		se.printStackTrace();
 					    	}
 					    	reader.close();
 	
-					    	engine.eval("processRequest('" + requestHost + "', '" + requestUri + "', '" + userAgent + "', '" + accept + "', '" + cookieData + "');");
-	
-					    	String description = (String)engine.get("description");
-					    	String profileImageUrl = (String)engine.get("profileImageUrl");
-					    	String sessionUri = (String)engine.get("sessionUri");
+					    	try
+					    	{
+					    		if(engine instanceof Invocable)
+					    		{
+					    			((Invocable)engine).invokeFunction("processRequest", requestHost, requestUri, userAgent, accept, cookieData);
+					    		}
+					    	}
+					    	catch (ScriptException se)
+					    	{
+					    		System.err.println("Exception in plugin '" + sd + "', function 'processRequest'. Stack trace follows:");
+					    		se.printStackTrace();
+					    	}
+
+					    	String description = "";
+					    	String profileImageUrl = "";
+					    	String sessionUri = "";
+					    	
+					    	try
+					    	{
+					    		description = (String)engine.get("description");
+						    	profileImageUrl = (String)engine.get("profileImageUrl");
+						    	sessionUri = (String)engine.get("sessionUri");
+					    	}
+					    	catch (Exception e)
+					    	{
+					    		// Do nothing
+					    	}
 					    	
 					    	if(description != null && description.length() > 0 && !description.equals("null"))
 					    	{
@@ -1216,9 +1242,103 @@ public class CookieCadgerInterface extends JFrame
 		}
 	}
 	
-	public CookieCadgerInterface(String pathToTshark) throws Exception
-	{		
-		this.pathToTshark = pathToTshark;
+	private void HandleProgramArguments(String[] args)
+	{
+		int i = 0;
+		String arg;
+		boolean bTerminate = false;
+
+		while (i < args.length && (args[i].startsWith("-") || args[i].startsWith("/")))
+		{
+			arg = args[i++];
+
+		    // use this type of check for arguments that require arguments
+			if (arg.contains("tshark"))
+			{
+				boolean filledRequirements = false;
+				if(arg.contains("tshark="))
+				{
+					String value = arg.split("=")[1];
+					if(value.length() > 0)
+					{
+						filledRequirements = true;
+						this.pathToTshark = value;
+					}
+				}
+
+				if(!filledRequirements)
+				{
+					System.err.println("--tshark requires a path to the tshark binary");
+					bTerminate = true;
+				}
+			}			
+			else if (arg.contains("detection"))
+			{
+				boolean filledRequirements = false;
+				if(arg.contains("detection="))
+				{
+					String value = arg.split("=")[1];
+					
+					if(value.equals("on"))
+					{
+						this.bUseSessionDetection = true;
+						bUseSessionDetectionSpecified = true;
+						filledRequirements = true;
+					}
+					else if (value.equals("off"))
+					{
+						this.bUseSessionDetection = false;
+						bUseSessionDetectionSpecified = true;
+						filledRequirements = true;
+					}
+				}
+
+				if(!filledRequirements)
+				{
+					bTerminate = true;
+					System.err.println("--detection (Session Detection) requires an 'on' or 'off' value");
+				}
+			}
+			else if (arg.contains("demo"))
+			{
+				boolean filledRequirements = false;
+				if(arg.contains("demo="))
+				{
+					String value = arg.split("=")[1];
+					
+					if(value.equals("on"))
+					{
+						this.bUseDemoMode = true;
+						bUseDemoModeSpecified = true;
+						filledRequirements = true;
+					}
+					else if (value.equals("off"))
+					{
+						this.bUseDemoMode = false;
+						bUseDemoModeSpecified = false;
+						filledRequirements = true;
+					}
+				}
+
+				if(!filledRequirements)
+				{
+					bTerminate = true;
+					System.err.println("--demo (automatic loading of session into the browser) requires an 'on' or 'off' value. Session Detection must also be enabled.");
+				}
+			}
+			
+			if(bTerminate)
+			{
+				dispose();
+				System.exit(0);
+			}
+		}
+	}
+	
+	public CookieCadgerInterface(String args[]) throws Exception
+	{
+		HandleProgramArguments(args);
+		//if(1==1) return;
 		
 		setResizable(false);
 		addWindowListener(new WindowAdapter() {
@@ -1236,26 +1356,29 @@ public class CookieCadgerInterface extends JFrame
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 950, 680);
 		
-        // Ask the user about session detection
-        int sessionDetection = JOptionPane.showConfirmDialog(
-                contentPane,
-                		"Session detection replays web requests in the background and analyzes\n" +
-                		"them for evidence that a user is logged in. Enabling session detection\n" +
-                		"will cause Cookie Cadger to utilize a larger amount of available\n" +
-                		"system resources.\n\n" +
-                		"By enabling this feature you also understand that:\n\n" +
-                		"1) Cookie Cadger will (potentially) automatically impersonate any\n" +
-                		"network user without their explicit permission or interaction on your part.\n\n" +
-                		"2) The legality of doing so varies between jurisdictions. It is your\n" +
-                		"responsibility to understand and comply with any applicable laws.\n\n" +
-                		"Would you like to enable session detection?\n ",
-                "Enable Session Detection?",
-                JOptionPane.YES_NO_OPTION);
-        
-        if (sessionDetection == JOptionPane.YES_OPTION)
-        {
-        	bUseSessionDetection = true;
-        }
+		if(!bUseSessionDetectionSpecified)
+		{
+	        // Ask the user about session detection
+	        int sessionDetection = JOptionPane.showConfirmDialog(
+	                contentPane,
+	                		"Session detection replays web requests in the background and analyzes\n" +
+	                		"them for evidence that a user is logged in. Enabling session detection\n" +
+	                		"will cause Cookie Cadger to utilize a larger amount of available\n" +
+	                		"system resources.\n\n" +
+	                		"By enabling this feature you also understand that:\n\n" +
+	                		"1) Cookie Cadger will (potentially) automatically impersonate any\n" +
+	                		"network user without their explicit permission or interaction on your part.\n\n" +
+	                		"2) The legality of doing so varies between jurisdictions. It is your\n" +
+	                		"responsibility to understand and comply with any applicable laws.\n\n" +
+	                		"Would you like to enable session detection?\n ",
+	                "Enable Session Detection?",
+	                JOptionPane.YES_NO_OPTION);
+	        
+	        if (sessionDetection == JOptionPane.YES_OPTION)
+	        {
+	        	bUseSessionDetection = true;
+	        }
+		}
 		
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -1339,6 +1462,12 @@ public class CookieCadgerInterface extends JFrame
 			JCheckBox chckbxAutomaticallyLoadSessions = new JCheckBox("Automatically Load Sessions Into Browser (Demo Mode)");
 			chckbxAutomaticallyLoadSessions.setBounds(12, 332, 420, 25);
 			chckbxAutomaticallyLoadSessions.setName("chckbxAutomaticallyLoadSessions");
+			
+			if(bUseDemoModeSpecified)
+			{
+				System.out.println("DEMO SPECIFIED: " + bUseDemoMode);
+				chckbxAutomaticallyLoadSessions.setSelected(bUseDemoMode);
+			}
 			sessionsPanel.add(chckbxAutomaticallyLoadSessions);
 			
 			JButton btnLoadSelectedSession = new JButton("Load Selected Session");
@@ -1737,38 +1866,48 @@ public class CookieCadgerInterface extends JFrame
 			}
 		});
 
-		mntmOpenACapture.addActionListener(new ActionListener() {
+		mntmOpenACapture.addActionListener(new ActionListener()
+		{
 			public void actionPerformed(ActionEvent arg0)
 			{
-		    	SwingWorker<?, ?> openCaptureWorker = new SwingWorker<Object, Object>() {            
-		        	@Override            
-		            public Object doInBackground()
-		        	{
-						JFileChooser fc = new JFileChooser();
-						FileFilter pcapFilter = new FileNameExtensionFilter("*.pcap | *.cap | *.pcapdump", "pcap", "cap", "pcapdump");
-						fc.addChoosableFileFilter(pcapFilter);
-						fc.setFileFilter(pcapFilter);
+				JFileChooser fc = new JFileChooser();
+				FileFilter pcapFilter = new FileNameExtensionFilter("*.pcap | *.cap | *.pcapdump", "pcap", "cap", "pcapdump");
+				fc.addChoosableFileFilter(pcapFilter);
+				fc.setFileFilter(pcapFilter);
+				int returnVal = fc.showOpenDialog(null);
 
-						int returnVal = fc.showOpenDialog(contentPane);
+		        if (returnVal == JFileChooser.APPROVE_OPTION)
+		        {
+		        	File file = fc.getSelectedFile();
+		        	final String pcapFile = file.getAbsolutePath();
+		        	JOptionPane.showMessageDialog(null, "This process could take some time, please be patient.");
+		        	
+			    	SwingWorker<?, ?> openCaptureWorker = new SwingWorker<Object, Object>() {            
+			        	@Override            
+			            public Object doInBackground()
+			        	{
+			        		try
+							{
+								consoleScrollPane.setVisible(false);
+								loadingRequestProgressBar.setString("Processing capture file, please wait...");
+								loadingRequestProgressBar.setVisible(true);
 
-				        if (returnVal == JFileChooser.APPROVE_OPTION)
-				        {
-				            File file = fc.getSelectedFile();
-				            JOptionPane.showMessageDialog(null, "This process could take some time, please be patient.");
-						            
-							try {
-								StartCapture(-1, file.getAbsolutePath());
+								StartCapture(-1, pcapFile);
+								
+				                loadingRequestProgressBar.setVisible(false);
+				                consoleScrollPane.setVisible(true);
+					                
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
-				        }
-		        		
-		                return null;
-		            }
-		        };
-		        
-		        openCaptureWorker.execute();
+			        		
+			                return null;
+			            }
+			        };
+			        
+			        openCaptureWorker.execute();
+				}
 			}
 		});
 
@@ -1783,7 +1922,7 @@ public class CookieCadgerInterface extends JFrame
 		mntmLoadSession.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent arg0)
-			{				
+			{
 				ResetDataset(false); // Do not re-init tables
 				dbInstance.openDatabase();
 		        
@@ -2090,7 +2229,7 @@ public class CookieCadgerInterface extends JFrame
 	{
 		File tshark;
 		
-		if(pathToTshark.isEmpty()) // no program arg specified
+		if(pathToTshark == null || pathToTshark.isEmpty()) // no program arg specified
 		{
 			// Get tshark location by checking likely Linux, Windows, and Mac paths
 			//							// Ubuntu/Debian	// Fedora/RedHat		// Windows 32-bit							//Windows 64-bit								//Mac OS X
@@ -2115,13 +2254,13 @@ public class CookieCadgerInterface extends JFrame
 			else
 			{
 				JOptionPane.showMessageDialog(null, "You specified a path to 'tshark' as an argument when starting this program, but the given path is invalid.");
-				pathToTshark = ""; // Empty the user-specified value
+				pathToTshark = null; // Empty the user-specified value
 			}
 		}
 		
-		if(pathToTshark.isEmpty())
+		if(pathToTshark == null || pathToTshark.isEmpty())
 		{
-			JOptionPane.showMessageDialog(null, "Error: couldn't find 'tshark' (part of the 'Wireshark' suite). This software cannot capture or analyze packets without it.\nYou can still load previously saved sessions for replaying in the browser, but be aware you might encounter errors.\n\nYou can manually specify the location to 'tshark' as a program argument.\n\nUsage:\njava -jar CookieCadger.jar <optional: full path to tshark>");
+			JOptionPane.showMessageDialog(null, "Error: couldn't find 'tshark' (part of the 'Wireshark' suite). This software cannot capture or analyze packets without it.\nYou can still load previously saved sessions for replaying in the browser, but be aware you might encounter errors.\n\nYou can manually specify the location to 'tshark' as a program argument.\n\nUsage:\njava -jar CookieCadger.jar -tshark <full path to tshark>");
 		}
 		else
 		{
@@ -2140,7 +2279,19 @@ public class CookieCadgerInterface extends JFrame
 				{
 					// Print every piece of output to the console
 					Console(line, false);
-					if(line.contains(". ")) // As in "1. eth1"
+
+					boolean isNumericStart = true;
+					try
+					{
+						// If line starts with an Integer, its valid
+						Integer.parseInt(line.substring(0, 1));
+					}
+					catch(Exception e)
+					{
+						isNumericStart = false;
+					}
+
+					if(isNumericStart)
 					{
 						if(line.contains("(") && line.contains(")"))
 						{
@@ -2293,21 +2444,5 @@ public class CookieCadgerInterface extends JFrame
 	    }
 	    
 	    return "";
-	}
-	
-	public static String hashMD5(String text)
-	{
-		String hashword = null;
-		try
-		{
-			MessageDigest md5 = MessageDigest.getInstance("MD5");
-			md5.update(text.getBytes());
-			BigInteger hash = new BigInteger(1, md5.digest());
-			hashword = hash.toString(16);
-		} catch (NoSuchAlgorithmException nsae) {
-			// ignore
-		}
-		
-		return hashword;
 	}
 }

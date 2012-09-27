@@ -12,7 +12,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 
 	if((host === "www.reddit.com" || host === "reddit.com") && cookies.indexOf("reddit_session=") != -1)
 	{
-		var pageContent = Packages.cookie.cadger.mattslifebytes.com.CookieCadgerInterface.readUrl("http://" + host + uri, userAgent, accept, cookies);
+		var pageContent = Packages.cookie.cadger.mattslifebytes.com.CookieCadgerInterface.readUrl("http://" + host, userAgent, accept, cookies);
 
 		if(pageContent.indexOf('"logged": "') != -1)
 		{

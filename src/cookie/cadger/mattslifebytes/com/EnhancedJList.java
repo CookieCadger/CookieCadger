@@ -2,15 +2,11 @@ package cookie.cadger.mattslifebytes.com;
 
 import java.awt.Component;
 import java.awt.Graphics;
-import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Rectangle;
 
-import javax.imageio.ImageIO;
-import javax.swing.Icon;
 import javax.swing.ImageIcon;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.ListCellRenderer;
 import javax.swing.JList;
@@ -21,13 +17,7 @@ import javax.swing.ToolTipManager;
 import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 
 /**
  * A JList that supports a zebra stripe background.

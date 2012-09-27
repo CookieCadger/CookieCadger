@@ -18,12 +18,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import javax.swing.AbstractListModel;
-import javax.swing.DefaultListModel;
 import javax.swing.ListModel;
-import javax.swing.event.EventListenerList;
 import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
-import java.text.Collator;
 
 /**
  * SortedListModel decorates an unsorted ListModel to provide

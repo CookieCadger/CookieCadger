@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.sql.*;
 import java.util.ArrayList;
@@ -186,15 +185,13 @@ public class Sqlite3DB
 		try {			
 			uri = URLDecoder.decode(uri, "UTF-8");
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			// Invalid, but nothing we can do about it
 		}
 		
 		try {			
 			referer = URLDecoder.decode(referer, "UTF-8");
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			// Invalid, but nothing we can do about it
 		}
 		
 	    PreparedStatement prep = dbInstance.prepareStatement("insert into requests values(NULL,?,?,?,?,?,?,?,?,?);");

@@ -1,8 +1,7 @@
 package cookie.cadger.mattslifebytes.com;
 
-// Thanks, Marty Lamb!
+// Thanks, Marty Lamb
 // http://stackoverflow.com/questions/659796/run-external-program-from-java-read-output-allow-interruption
-
 public class ProcessWatcher implements Runnable {
 
     private Process p;

@@ -2,8 +2,6 @@ package cookie.cadger.mattslifebytes.com;
 
 import java.awt.EventQueue;
 
-import javax.swing.JOptionPane;
-
 public class Program
 {	
 	/**
@@ -31,21 +29,23 @@ public class Program
 		
 		EventQueue.invokeLater(new Runnable()
 		{
-			public void run() {
-				try
+			public void run()
+			{
+				if(args.length > 0)
 				{
-					String pathToTshark = "";
-					if(args.length > 1)
+					for (String arg : args)
 					{
-						JOptionPane.showMessageDialog(null, "You've entered too many program arguments.\n\nUsage:\njava -jar CookieCadger.jar <optional: full path to tshark>");
-						return;
+						if(arg.contains("-help") || arg.contains("/help") || arg.contains("/?") || arg.contains("-?"))
+						{
+							System.err.println("Example usage:\njava -jar CookieCadger.jar [--tshark=/usr/sbin/tshark] [--detection=on] [--demo=on]");
+							return;
+						}
 					}
-					else if(args.length == 1)
-					{
-						pathToTshark = args[0];
-					}
-					
-					CookieCadgerInterface cookieCadgerInterface = new CookieCadgerInterface(pathToTshark);
+				}
+				
+				try
+				{					
+					CookieCadgerInterface cookieCadgerInterface = new CookieCadgerInterface(args);
 					cookieCadgerInterface.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
