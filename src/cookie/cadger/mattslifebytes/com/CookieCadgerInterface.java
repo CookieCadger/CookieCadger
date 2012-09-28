@@ -49,6 +49,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 
 import javax.imageio.ImageIO;
 import javax.script.Invocable;
@@ -58,6 +59,7 @@ import javax.script.ScriptException;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
@@ -1338,7 +1340,6 @@ public class CookieCadgerInterface extends JFrame
 	public CookieCadgerInterface(String args[]) throws Exception
 	{
 		HandleProgramArguments(args);
-		//if(1==1) return;
 		
 		setResizable(false);
 		addWindowListener(new WindowAdapter() {
@@ -1355,6 +1356,12 @@ public class CookieCadgerInterface extends JFrame
 		setTitle("Cookie Cadger");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 950, 680);
+		
+		// Justin
+		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+		InputStream input = classLoader.getResourceAsStream("cookie/cadger/mattslifebytes/com/cookiecadger.ico");
+		Image logo = ImageIO.read(input);
+		this.setIconImage(logo);
 		
 		if(!bUseSessionDetectionSpecified)
 		{
