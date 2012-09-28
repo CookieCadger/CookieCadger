@@ -1357,11 +1357,9 @@ public class CookieCadgerInterface extends JFrame
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 950, 680);
 		
-		// Justin
-		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-		InputStream input = classLoader.getResourceAsStream("cookie/cadger/mattslifebytes/com/cookiecadger.ico");
-		Image logo = ImageIO.read(input);
-		this.setIconImage(logo);
+		URL url = this.getClass().getResource("/resource/cookiecadger.jpg");
+		BufferedImage img = ImageIO.read(url);
+		this.setIconImage(img);
 		
 		if(!bUseSessionDetectionSpecified)
 		{
