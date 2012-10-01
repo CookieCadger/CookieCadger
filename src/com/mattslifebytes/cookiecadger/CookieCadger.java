@@ -73,7 +73,7 @@ public class CookieCadger {
 				}
 			}
 			if(errorEncountered) {
-				ccInterface.exceptionClose();
+				ccInterface.onBadArgsClose();
 				System.exit(1);
 			}
 		}
