@@ -67,10 +67,15 @@ public class CaptureEngine {
 		} catch (IOException e) {
 			debugList.add(new CookieCadgerException("CaptureEngine: stopCapture(): IOException when closing the BufferedReader: " + e.getLocalizedMessage()));
 		}
+		reader = null;
 	}
 	
 	public BufferedReader getStream() {
 		return reader;
+	}
+	
+	public String getPcapFile() {
+		return pcapFile;
 	}
 	
 	private String getTsharkArgs(String interfaceName, String pcapFile) {
