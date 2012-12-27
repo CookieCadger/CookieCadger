@@ -23,6 +23,17 @@ function processRequest(host, uri, userAgent, accept, cookies)
 			wordpressUser = wordpressUser.substring(0, wordpressUser.indexOf("<"));
 
 			description = "<html>Wordpress installation on<br><font size=5>" + host + "</font><br>User: " + wordpressUser;
+		} else {
+			// another wordpress trait for the admin dashboard
+			if(pageContent.indexOf("Howdy, ") != -1){
+				try{
+					var howdyStart = pageContent.substring(pageContent.indexOf("<p>Howdy, ") + 10, pageContent.length());
+					var wordpressUser = howdyStart.substring(0, howdyStart.indexOf("</p>")).trim();
+					description = "<html>Wordpress installation on<br><font size=5>" + host + "</font><br>User: " + wordpressUser;
+				} catch (err){
+					// maybe not actually a session
+				}
+			}
 		}
 	}
 }
