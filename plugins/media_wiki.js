@@ -19,6 +19,9 @@ function processRequest(host, uri, userAgent, accept, cookies)
 			description = "<html>MediaWiki installation on<br><font size=5>" + host + "</font><br>User: " + username;
 		} catch (err){
 			// maybe not a session
+			description = null;
+			profileImageUrl = null;
+			sessionUri = null;
 		}
 	}
 }
