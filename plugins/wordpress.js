@@ -16,7 +16,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 
 		if(pageContent.indexOf('title="My Account"') != -1)
 		{
-			// Definite session found, get user name
+			// definite session found, get user name
 			var wordpressMyAccountTextPosition = pageContent.indexOf('title="My Account"');
 			var wordpressEndOfMyAccountTextPosition = pageContent.indexOf(", " , wordpressMyAccountTextPosition);
 			var wordpressUser = pageContent.substring(wordpressEndOfMyAccountTextPosition + 2);
@@ -30,8 +30,12 @@ function processRequest(host, uri, userAgent, accept, cookies)
 					var howdyStart = pageContent.substring(pageContent.indexOf("<p>Howdy, ") + 10, pageContent.length());
 					var wordpressUser = howdyStart.substring(0, howdyStart.indexOf("</p>")).trim();
 					description = "<html>Wordpress installation on<br><font size=5>" + host + "</font><br>User: " + wordpressUser;
+					sessionUri = "/wp-admin";
 				} catch (err){
-					// maybe not actually a session
+					// maybe not a session
+					description = null;
+					profileImageUrl = null;
+					sessionUri = null;
 				}
 			}
 		}

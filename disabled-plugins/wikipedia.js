@@ -10,18 +10,15 @@ function processRequest(host, uri, userAgent, accept, cookies)
 	profileImageUrl = null;
 	sessionUri = null;
 
-	if(cookies.indexOf("mediawiki") != -1 && cookies.indexOf("session") != -1)
+	if(cookies.indexOf("wiki_session=") != -1)
 	{
 		// convientently username is stored in the cookie
 		try{
-			var usernameStart = cookies.substring(cookies.indexOf("UserName=") + 9, cookies.length);
+			var usernameStart = cookies.substring(cookies.indexOf("wikiUserName=") + 13, cookies.length);
 			var username = usernameStart.substring(0, usernameStart.indexOf(";"));
-			description = "<html>MediaWiki installation on<br><font size=5>" + host + "</font><br>User: " + username;
+			description = "<html><font size=5>Wikipedia</font><br>User: " + username;
 		} catch (err){
 			// maybe not a session
-			description = null;
-			profileImageUrl = null;
-			sessionUri = null;
 		}
 	}
 }

@@ -21,6 +21,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 			if(uri.indexOf("administrator") != -1){
 				// administrator page
 				description = "<html>Joomla! installation on<br><font size=5>" + host + "</font><br>User Role: Administrator";
+				sessionUri = "/administrator";
 			} else {
 				description = "<html>Joomla! installation on<br><font size=5>" + host + "</font>";
 			}
