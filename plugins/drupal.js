@@ -14,14 +14,28 @@ function processRequest(host, uri, userAgent, accept, cookies)
 	{
 		var pageContent = Packages.cookie.cadger.mattslifebytes.com.CookieCadgerInterface.readUrl("http://" + host + uri, userAgent, accept, cookies);
 
-		if(pageContent.indexOf('Log out ') != -1)
+		// this is kind of them dependent so we try a few variations
+		if(pageContent.indexOf('Log out') != -1 || pageContent.indexOf('Logout') != -1 || pageContent.indexOf('logout') != -1)
 		{
-			// Definite session found, get user name
-			var drupalLogoutTextPosition = pageContent.indexOf('Log out ');
-			var drupalUser = pageContent.substring(drupalLogoutTextPosition + 8);
-			drupalUser = drupalUser.substring(0, drupalUser.indexOf("<"));
+			// definite session found, try to get user name
+			var username = "Unknown";
+			
+			try {
+				if(pageContent.indexOf('Log out ') != -1){
+					username = pageContent.substring(pageContent.indexOf('Log out ') + 8);
+					username = username.substring(0, username.indexOf("<"));
+				} 
+				// this tries to grab the username from the dashboard top bar overlay when the user is logged in
+				else if(pageContent.indexOf('title="User account">Hello <strong>')){
+					username = pageContent.substring(pageContent.indexOf('title="User account">Hello <strong>') + 35);
+					username = username.substring(0, username.indexOf("</strong>"));
+				}
+			} catch (err){
+				username = "Unknown";
+			}
 
-			description = "<html>Drupal installation on<br><font size=5>" + host + "</font><br>User: " + drupalUser;
+			description = "<html>Drupal installation on<br><font size=5>" + host + "</font><br>User: " + username;
+			sessionUri = "/user";
 		}
 	}
 }
