@@ -59,7 +59,6 @@ import javax.script.ScriptException;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
-import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
@@ -87,9 +86,12 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -142,6 +144,7 @@ public class CookieCadgerInterface extends JFrame
 	private Sqlite3DB dbInstance = null;
 	private boolean bUseSessionDetection = false;
 	private boolean bUseSessionDetectionSpecified = false;
+	private boolean bUpdateChecking = true;
 	private boolean bUseDemoMode = false;
 	private boolean bUseDemoModeSpecified = false;
 	private RequestInterceptor requestIntercept;
@@ -1273,7 +1276,7 @@ public class CookieCadgerInterface extends JFrame
 					System.err.println("--tshark requires a path to the tshark binary");
 					bTerminate = true;
 				}
-			}			
+			}
 			else if (arg.contains("detection"))
 			{
 				boolean filledRequirements = false;
@@ -1283,14 +1286,39 @@ public class CookieCadgerInterface extends JFrame
 					
 					if(value.equals("on"))
 					{
-						this.bUseSessionDetection = true;
+						bUseSessionDetection = true;
 						bUseSessionDetectionSpecified = true;
 						filledRequirements = true;
 					}
 					else if (value.equals("off"))
 					{
-						this.bUseSessionDetection = false;
+						bUseSessionDetection = false;
 						bUseSessionDetectionSpecified = true;
+						filledRequirements = true;
+					}
+				}
+
+				if(!filledRequirements)
+				{
+					bTerminate = true;
+					System.err.println("--detection (Session Detection) requires an 'on' or 'off' value");
+				}
+			}
+			else if (arg.contains("update"))
+			{
+				boolean filledRequirements = false;
+				if(arg.contains("update="))
+				{
+					String value = arg.split("=")[1];
+					
+					if(value.equals("on"))
+					{
+						bUpdateChecking = true;
+						filledRequirements = true;
+					}
+					else if (value.equals("off"))
+					{
+						bUpdateChecking = false;
 						filledRequirements = true;
 					}
 				}
@@ -1357,7 +1385,7 @@ public class CookieCadgerInterface extends JFrame
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 950, 680);
 		
-		URL url = this.getClass().getResource("/resource/cookiecadger.jpg");
+		URL url = this.getClass().getResource("/resource/cookiecadger.png");
 		BufferedImage img = ImageIO.read(url);
 		this.setIconImage(img);
 		
@@ -2169,42 +2197,60 @@ public class CookieCadgerInterface extends JFrame
 		
 		interfaceListComboBox.setSelectedIndex(itemToSelect);
 		
-		// Check for software update
-    	SwingWorker<?, ?> updateWorker = new SwingWorker<Object, Object>() {            
-        	@Override            
-            public Object doInBackground()
-        	{
-        		try {
-        			JLabel lblSoftwareUpdateAvailable = ((JLabel)GetComponentByName("lblSoftwareUpdateAvailable"));
-        			
-        			// TODO - make HTTPS (and the correct Url) when the new host is ready 
-					String releasedVersion = readUrl("http://www.mattslifebytes.com/files/version.php", "Cookie Cadger, " + CookieCadgerUtils.version, "text/html", null);
-					
-					lblSoftwareUpdateAvailable.addMouseListener(new MouseAdapter() {
-						@Override
-						public void mouseClicked(MouseEvent e) {
-							try
+		if(bUpdateChecking)
+		{
+			// Check for software update
+	    	SwingWorker<?, ?> updateWorker = new SwingWorker<Object, Object>() {            
+	        	@Override            
+	            public Object doInBackground()
+	        	{
+	        		try {
+	        			JLabel lblSoftwareUpdateAvailable = ((JLabel)GetComponentByName("lblSoftwareUpdateAvailable"));
+
+	        			InetAddress ip = InetAddress.getLocalHost(); // Get an active IP
+	        	        NetworkInterface network = NetworkInterface.getByInetAddress(ip); // and match to Mac Address
+	        	        byte[] mac = network.getHardwareAddress();
+	        	        MessageDigest shaOfMacAddress = MessageDigest.getInstance("SHA-512");
+	        	        byte[] macAddressHash = shaOfMacAddress.digest(mac);
+
+	        	        StringBuffer macAddressHashStringBuilder = new StringBuffer();
+	        	        for (int i = 0; i < macAddressHash.length; i++)
+	        	        {
+	        	        	macAddressHashStringBuilder.append(Integer.toString((macAddressHash[i] & 0xff) + 0x100, 16).substring(1));
+	        	        }
+	        	        String macAddressHashString = macAddressHashStringBuilder.toString();
+						String releasedVersion = readUrl("https://www.cookiecadger.com/update/?update=" + CookieCadgerUtils.version + "; " + System.getProperty("os.name") + "; " + System.getProperty("os.version") + "; " + System.getProperty("os.arch") + "; " + macAddressHashString, "Cookie Cadger, " + CookieCadgerUtils.version, "text/html", null);
+						
+						if(releasedVersion.length() > 0 && releasedVersion.contains("Cookie Cadger")) // String has stuff in it? Display.
+						{
+							lblSoftwareUpdateAvailable.setText(releasedVersion);
+							lblSoftwareUpdateAvailable.setForeground(Color.BLUE);
+							lblSoftwareUpdateAvailable.addMouseListener(new MouseAdapter()
 							{
-								Desktop.getDesktop().browse(new URI("http://www.google.com"));
-							}
-							catch (Exception ex) {
-								// Do nothing
-							}
+								@Override
+								public void mouseClicked(MouseEvent e) {
+									try
+									{
+										Desktop.getDesktop().browse(new URI("http://www.cookiecadger.com/update/"));
+									}
+									catch (Exception ex) {
+										// Do nothing
+									}
+								}
+							});
 						}
-					});
-					lblSoftwareUpdateAvailable.setForeground(Color.RED);
-					lblSoftwareUpdateAvailable.setText(releasedVersion);
-				}
-        		catch (Exception e)
-        		{
-					// Do nothing
-				}
-        		
-                return null;
-            }
-        };
-        updateWorker.execute();
-        
+					}
+	        		catch (Exception e)
+	        		{
+	        			e.printStackTrace();
+						// Do nothing
+					}
+	        		
+	                return null;
+	            }
+	        };
+	        updateWorker.execute();
+		}
         // Load all plugin classes
         try
         {
@@ -2237,8 +2283,8 @@ public class CookieCadgerInterface extends JFrame
 		if(pathToTshark == null || pathToTshark.isEmpty()) // no program arg specified
 		{
 			// Get tshark location by checking likely Linux, Windows, and Mac paths
-			//							// Ubuntu/Debian	// Fedora/RedHat		// Windows 32-bit							//Windows 64-bit								//Mac OS X
-			String[] pathCheckStrings = { "/usr/bin/tshark", "/usr/sbin/tshark", "C:\\Program Files\\Wireshark\\tshark.exe", "C:\\Program Files (x86)\\Wireshark\\tshark.exe", "/Applications/Wireshark.app/Contents/Resources/bin/tshark" };
+			//							// Ubuntu/Debian	// Fedora/RedHat		// Windows 32-bit							//Windows 64-bit								//Mac OS X                                                   //Backtrack 5 R3
+			String[] pathCheckStrings = { "/usr/bin/tshark", "/usr/sbin/tshark", "C:\\Program Files\\Wireshark\\tshark.exe", "C:\\Program Files (x86)\\Wireshark\\tshark.exe", "/Applications/Wireshark.app/Contents/Resources/bin/tshark", "/usr/local/bin/tshark" };
 			
 			for(String path : pathCheckStrings)
 			{
