@@ -1,4 +1,4 @@
-CookieCadger
+Cookie Cadger
 ============
 ## An auditing tool for Wi-Fi or wired Ethernet connections
 
@@ -21,7 +21,7 @@ General information / anything else:
 sullivan.matt@gmail.com
 
 ----------------------------------------------
-License
+License (FreeBSD)
 ----------------------------------------------
 Copyright (c) 2013, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>
 
