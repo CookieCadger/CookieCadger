@@ -37,7 +37,8 @@ public class Program
 					{
 						if(arg.contains("-help") || arg.contains("/help") || arg.contains("/?") || arg.contains("-?"))
 						{
-							System.err.println("Example usage:\njava -jar CookieCadger.jar [--tshark=/usr/sbin/tshark] [--detection=on] [--demo=on]");
+							System.err.println("Cookie Cadger, version " + CookieCadgerUtils.version);
+							System.err.println("Example usage:\njava -jar CookieCadger.jar [--tshark=/usr/sbin/tshark] [--detection=on] [--demo=on] [--update=on]");
 							return;
 						}
 					}
