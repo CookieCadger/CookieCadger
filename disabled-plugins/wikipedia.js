@@ -12,7 +12,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 
 	if(cookies.indexOf("wiki_session=") != -1)
 	{
-		// convientently username is stored in the cookie
+		// conveniently username is stored in the cookie
 		try{
 			var usernameStart = cookies.substring(cookies.indexOf("wikiUserName=") + 13, cookies.length);
 			var username = usernameStart.substring(0, usernameStart.indexOf(";"));
