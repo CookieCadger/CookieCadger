@@ -2283,8 +2283,8 @@ public class CookieCadgerInterface extends JFrame
 		if(pathToTshark == null || pathToTshark.isEmpty()) // no program arg specified
 		{
 			// Get tshark location by checking likely Linux, Windows, and Mac paths
-			//							// Ubuntu/Debian	// Fedora/RedHat		// Windows 32-bit							//Windows 64-bit								//Mac OS X                                                   //Backtrack 5 R3
-			String[] pathCheckStrings = { "/usr/bin/tshark", "/usr/sbin/tshark", "C:\\Program Files\\Wireshark\\tshark.exe", "C:\\Program Files (x86)\\Wireshark\\tshark.exe", "/Applications/Wireshark.app/Contents/Resources/bin/tshark", "/usr/local/bin/tshark" };
+			//								// Ubuntu/Debian	// Fedora/RedHat			// BackTrack 5 R3	// Windows 32-bit							//Windows 64-bit									//Mac OS X
+			String[] pathCheckStrings = {	"/usr/bin/tshark",	"/usr/local/bin/tshark",	"/usr/sbin/tshark",	"C:\\Program Files\\Wireshark\\tshark.exe",	"C:\\Program Files (x86)\\Wireshark\\tshark.exe",	"/Applications/Wireshark.app/Contents/Resources/bin/tshark" };
 			
 			for(String path : pathCheckStrings)
 			{
@@ -2311,7 +2311,7 @@ public class CookieCadgerInterface extends JFrame
 		
 		if(pathToTshark == null || pathToTshark.isEmpty())
 		{
-			JOptionPane.showMessageDialog(null, "Error: couldn't find 'tshark' (part of the 'Wireshark' suite). This software cannot capture or analyze packets without it.\nYou can still load previously saved sessions for replaying in the browser, but be aware you might encounter errors.\n\nYou can manually specify the location to 'tshark' as a program argument.\n\nUsage:\njava -jar CookieCadger.jar -tshark <full path to tshark>");
+			JOptionPane.showMessageDialog(null, "Error: couldn't find 'tshark' (part of the 'Wireshark' suite). This software cannot capture or analyze packets without it.\nYou can still load previously saved sessions for replaying in the browser, but be aware you might encounter errors.\n\nYou can manually specify the location to 'tshark' as a program argument.\n\nUsage:\njava -jar CookieCadger.jar --tshark=<full path to tshark>");
 		}
 		else
 		{
