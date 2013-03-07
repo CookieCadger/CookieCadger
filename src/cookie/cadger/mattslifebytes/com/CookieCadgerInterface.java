@@ -81,6 +81,8 @@ import javax.swing.JSeparator;
 import javax.swing.JCheckBox;
 import javax.swing.JTextArea;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.filechooser.FileFilter;
@@ -148,6 +150,7 @@ public class CookieCadgerInterface extends JFrame
 	private boolean bUseDemoMode = false;
 	private boolean bUseDemoModeSpecified = false;
 	private RequestInterceptor requestIntercept;
+	private EnhancedJTextField txtClientSearch, txtDomainSearch, txtRequestSearch;
 
 	private void StartCapture(int ethDevNumber, String pcapFile) throws IOException
 	{
@@ -257,8 +260,11 @@ public class CookieCadgerInterface extends JFrame
 							
 							dbInstance.setStringValue("clients", "netbios_hostname", netbiosName, "mac_address", macAddress);
 						
-							// If only show hosts with GET requests is unchecked, always show. If checked and total for this MAC > 0, show as well
-							if(!clientsListModel.contains(macAddress) && !((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) > 0 ) )
+							// If only show hosts with GET requests is unchecked, always show. If checked and total for this MAC > 0, show as well. Then check to see if filtering is enabled
+							if(!clientsListModel.contains(macAddress) && 
+									!((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) > 0 ) &&
+									(txtClientSearch.getText().isEmpty() || (txtClientSearch.getText().length() > 0 && macAddress.contains(txtClientSearch.getText())))
+									)
 							{
 								clientsListModel.addElement(new EnhancedJListItem(clientID, macAddress, null));
 								clientsList.performHighlight(macAddress, Color.BLUE);
@@ -281,7 +287,9 @@ public class CookieCadgerInterface extends JFrame
 									dbInstance.setStringValue("clients", "mdns_hostname", mdnsNameStr, "mac_address", macAddress);
 									
 									// If only show hosts with GET requests is unchecked, always show. If checked and total for this MAC > 0, show as well
-									if(!clientsListModel.contains(macAddress) && !((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) == 1 ) )
+									if(!clientsListModel.contains(macAddress) && !((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) == 1 ) &&
+											(txtClientSearch.getText().isEmpty() || (txtClientSearch.getText().length() > 0 && macAddress.contains(txtClientSearch.getText())))
+											)
 									{
 										clientsListModel.addElement(new EnhancedJListItem(clientID, macAddress, null));
 										clientsList.performHighlight(macAddress, Color.BLUE);
@@ -401,7 +409,7 @@ public class CookieCadgerInterface extends JFrame
 		try
 		{
 			// If this user session is not empty set
-			if(dbInstance.getMacs(false).length > 0)
+			if(dbInstance.getMacs(false, null).length > 0)
 			{
 			    // Ask the user to save
 			    int saveDatasetResult = JOptionPane.showConfirmDialog(
@@ -506,7 +514,9 @@ public class CookieCadgerInterface extends JFrame
 				domainID = dbInstance.createDomain(requestHost);
 				
 				// And display it, if appropriate to do so
-				if(!clientsList.isSelectionEmpty() && ((EnhancedJListItem)clientsList.getSelectedValue()).toString().equals(macAddress))
+				if(!clientsList.isSelectionEmpty() && ((EnhancedJListItem)clientsList.getSelectedValue()).toString().equals(macAddress) &&
+						(txtDomainSearch.getText().isEmpty() || (txtDomainSearch.getText().length() > 0 && requestHost.toLowerCase().contains(txtDomainSearch.getText().toLowerCase())))
+						)
 				{
 					domainsListModel.addElement(new EnhancedJListItem(domainID, requestHost, null));
 				}
@@ -526,12 +536,31 @@ public class CookieCadgerInterface extends JFrame
 			reqID = dbInstance.createRequest(requestUri, userAgent, refererUri, cookieData, authorization, authBasic, domainID, clientID);
 			
 			// Update the requests list if necessary
-			if(!clientsList.isSelectionEmpty() && ((EnhancedJListItem)clientsList.getSelectedValue()).toString().equals(macAddress) && !domainsList.isSelectionEmpty() && (((EnhancedJListItem)domainsList.getSelectedValue()).toString().equals(requestHost) || (((EnhancedJListItem)domainsList.getSelectedValue()).toString().equals("[ All Domains ]"))))
+			if(!clientsList.isSelectionEmpty() && ((EnhancedJListItem)clientsList.getSelectedValue()).toString().equals(macAddress) && !domainsList.isSelectionEmpty() && (((EnhancedJListItem)domainsList.getSelectedValue()).toString().equals(requestHost) || (((EnhancedJListItem)domainsList.getSelectedValue()).toString().equals("[ All Domains ]"))) &&
+					(txtRequestSearch.getText().isEmpty() || (txtRequestSearch.getText().length() > 0 && requestUri.toLowerCase().contains(txtRequestSearch.getText().toLowerCase())))
+					)
 			{
 				Date now = new Date();	
 				String dateString = DateFormat.getTimeInstance(DateFormat.MEDIUM).format(now);
-
-				requestsListModel.addElement(new EnhancedJListItem(reqID, dateString + ": " + requestUri, null));
+				
+				// If showing all domains in the request list, make sure the full request Url gets displayed
+				boolean bShowAllDomains = false;
+				if(!domainsList.isSelectionEmpty() && ((EnhancedJListItem)domainsList.getSelectedValue()).toString().equals("[ All Domains ]"))
+				{
+					bShowAllDomains = true;
+				}
+								
+				String requestDisplay = null;
+				if(bShowAllDomains)
+				{
+					requestDisplay = requestHost + requestUri;
+				}
+				else
+				{
+					requestDisplay = requestUri;
+				}
+				
+				requestsListModel.addElement(new EnhancedJListItem(reqID, dateString + ": " + requestDisplay, null));
 			}
 		}
 		catch (SQLException e)
@@ -541,7 +570,9 @@ public class CookieCadgerInterface extends JFrame
 		}
 		
 		try {
-			if(!clientsListModel.contains(macAddress) && !((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) == 1 ) )
+			if(!clientsListModel.contains(macAddress) && !((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) == 1 ) &&
+					(txtClientSearch.getText().isEmpty() || (txtClientSearch.getText().length() > 0 && macAddress.contains(txtClientSearch.getText())))
+					)
 			{
 				clientsListModel.addElement(new EnhancedJListItem(clientID, macAddress, null));
 				clientsList.performHighlight(macAddress, Color.BLUE);
@@ -720,7 +751,7 @@ public class CookieCadgerInterface extends JFrame
         		{
         			boolean bOnlyHostsWithData = ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected();
 
-        			String[] macAddresses = dbInstance.getMacs(bOnlyHostsWithData);
+        			String[] macAddresses = dbInstance.getMacs(bOnlyHostsWithData, ((EnhancedJTextField)GetComponentByName("txtClientSearch")).getText());
         			for (String s : macAddresses)
         			{
         				// Update the GUI with progress
@@ -790,7 +821,7 @@ public class CookieCadgerInterface extends JFrame
 		domainsListModel.addElement(new EnhancedJListItem(-1, "[ All Domains ]", null));
 		try
 		{
-			for (String s : dbInstance.getDomains(macAddress))
+			for (String s : dbInstance.getDomains(macAddress, ((EnhancedJTextField)GetComponentByName("txtDomainSearch")).getText()))
 			{
 				int domainID = dbInstance.getIntegerValue("domains", "id", "name", s);
 				domainsListModel.addElement(new EnhancedJListItem(domainID, s, null));
@@ -833,7 +864,7 @@ public class CookieCadgerInterface extends JFrame
 		}
 		
 		try {
-			ArrayList<ArrayList> requests = dbInstance.getRequests(macAddress, uriHost);
+			ArrayList<ArrayList> requests = dbInstance.getRequests(macAddress, uriHost, ((EnhancedJTextField)GetComponentByName("txtRequestSearch")).getText());
 			
 			ArrayList<String> ids = requests.get(0);
 			ArrayList<String> timerecordeds = requests.get(1);
@@ -1678,7 +1709,7 @@ public class CookieCadgerInterface extends JFrame
 		interfaceListComboBox.setModel(interfacesListModel);
 		
 		JScrollPane macListScrollPanel = new JScrollPane();
-		macListScrollPanel.setBounds(22, 2, 152, 328);
+		macListScrollPanel.setBounds(22, 32, 152, 298);
 		requestsPanel.add(macListScrollPanel);
 		
 		clientsList = new EnhancedJList();
@@ -1709,7 +1740,7 @@ public class CookieCadgerInterface extends JFrame
 		requestsPanel.add(chckbxOnlyShowHosts);
 		
 		JScrollPane domainListScrollPane = new JScrollPane();
-		domainListScrollPane.setBounds(180, 2, 200, 366);
+		domainListScrollPane.setBounds(180, 32, 200, 336);
 		requestsPanel.add(domainListScrollPane);
 		
 		domainsList = new EnhancedJList();
@@ -1735,7 +1766,7 @@ public class CookieCadgerInterface extends JFrame
 		domainsList.setModel(domainListModelSorted);
 		
 		JScrollPane requestListScrollPanel = new JScrollPane();
-		requestListScrollPanel.setBounds(386, 2, 482, 336);
+		requestListScrollPanel.setBounds(386, 32, 482, 306);
 		requestsPanel.add(requestListScrollPanel);
 
 		requestsList = new EnhancedJList();
@@ -1884,6 +1915,27 @@ public class CookieCadgerInterface extends JFrame
 		btnReplayRequest.setBounds(633, 342, 234, 25);
 		requestsPanel.add(btnReplayRequest);
 		
+		txtClientSearch = new EnhancedJTextField();
+		txtClientSearch.setName("txtClientSearch");
+		txtClientSearch.setPlaceholder("Filter MACs");
+		txtClientSearch.setBounds(22, 8, 152, 19);
+		requestsPanel.add(txtClientSearch);
+		txtClientSearch.setColumns(10);
+		
+		txtDomainSearch = new EnhancedJTextField();
+		txtDomainSearch.setName("txtDomainSearch");
+		txtDomainSearch.setPlaceholder("Filter Domains");
+		txtDomainSearch.setBounds(179, 8, 201, 19);
+		requestsPanel.add(txtDomainSearch);
+		txtDomainSearch.setColumns(10);
+		
+		txtRequestSearch = new EnhancedJTextField();
+		txtRequestSearch.setName("txtRequestSearch");
+		txtRequestSearch.setPlaceholder("Filter Requests");
+		txtRequestSearch.setBounds(386, 8, 482, 19);
+		requestsPanel.add(txtRequestSearch);
+		txtRequestSearch.setColumns(10);
+		
 		JLabel lblSoftwareUpdateAvailable = new JLabel("");
 		lblSoftwareUpdateAvailable.setName("lblSoftwareUpdateAvailable");
 		lblSoftwareUpdateAvailable.setBounds(28, 606, 895, 15);
@@ -2021,7 +2073,65 @@ public class CookieCadgerInterface extends JFrame
 				CookieCadgerUtils.DisplayAboutWindow();
 			}
 		});
-
+		
+		// Listen for changes in the client filter textbox
+		txtClientSearch.getDocument().addDocumentListener(new DocumentListener() {
+		  public void changedUpdate(DocumentEvent e) {
+			  ChangeClientsList();
+		  }
+		  public void removeUpdate(DocumentEvent e) {
+			  ChangeClientsList();
+		  }
+		  public void insertUpdate(DocumentEvent e) {
+			  ChangeClientsList();
+		  }
+		});
+		
+		// Listen for changes in the domain filter textbox
+		txtDomainSearch.getDocument().addDocumentListener(new DocumentListener() {
+		  public void changedUpdate(DocumentEvent e) {
+			  ChangeDomains();
+		  }
+		  public void removeUpdate(DocumentEvent e) {
+			  ChangeDomains();
+		  }
+		  public void insertUpdate(DocumentEvent e) {
+			  ChangeDomains();
+		  }
+		  
+		  private void ChangeDomains()
+		  {
+				if(!clientsList.getValueIsAdjusting() && !clientsList.isSelectionEmpty())
+				{
+					String item = ((EnhancedJListItem)clientsList.getSelectedValue()).toString();
+					ChangeDomainsList(item);
+				}
+		  }
+		});
+		
+		// Listen for changes in the request filter textbox
+		txtRequestSearch.getDocument().addDocumentListener(new DocumentListener() {
+		  public void changedUpdate(DocumentEvent e) {
+			  ChangeRequests();
+		  }
+		  public void removeUpdate(DocumentEvent e) {
+			  ChangeRequests();
+		  }
+		  public void insertUpdate(DocumentEvent e) {
+			  ChangeRequests();
+		  }
+		  
+		  private void ChangeRequests()
+		  {
+				if( (!clientsList.getValueIsAdjusting() && !clientsList.isSelectionEmpty()) &&
+						(!domainsList.getValueIsAdjusting() && !domainsList.isSelectionEmpty()) )
+				{
+					String client = ((EnhancedJListItem)clientsList.getSelectedValue()).toString();
+					String domain = ((EnhancedJListItem)domainsList.getSelectedValue()).toString();
+					ChangeRequestsList(client, domain);
+				}
+		  }
+		});
 
 		btnLoadDomainCookies.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0)

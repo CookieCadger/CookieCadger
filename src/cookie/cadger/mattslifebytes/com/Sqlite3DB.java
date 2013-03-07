@@ -218,7 +218,7 @@ public class Sqlite3DB
 	    return value;
 	}
 	
-	public String[] getMacs(boolean bOnlyHostsWithData) throws SQLException
+	public String[] getMacs(boolean bOnlyHostsWithData, String searchString) throws SQLException
 	{
 		String criteria = "1";
 		
@@ -227,6 +227,11 @@ public class Sqlite3DB
 			criteria = "has_http_requests = 1";
 		}
 		
+		if(searchString != null && searchString.length() > 0)
+		{
+			criteria = criteria + " AND mac_address LIKE '%" + searchString + "%'";
+		}
+
 		Statement stat = dbInstance.createStatement();
 	    ResultSet rs = stat.executeQuery("select mac_address from clients where " + criteria + ";");
 
@@ -280,10 +285,17 @@ public class Sqlite3DB
 	    return items;
 	}
 	
-	public String[] getDomains(String macAddress) throws SQLException
+	public String[] getDomains(String macAddress, String searchString) throws SQLException
 	{
+		String criteria = "";
+		
+		if(searchString != null && searchString.length() > 0)
+		{
+			criteria = "AND d.name LIKE '%" + searchString + "%'";
+		}
+		
 		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select distinct d.name from domains d inner join requests r on d.id = r.domain_id inner join clients c on c.id = r.client_id where c.mac_address = '" + macAddress + "';");
+	    ResultSet rs = stat.executeQuery("select distinct d.name from domains d inner join requests r on d.id = r.domain_id inner join clients c on c.id = r.client_id where c.mac_address = '" + macAddress + "' " + criteria + ";");
 
 	    String[] value = toStringArray(rs, "name");
 	    rs.close();
@@ -328,12 +340,19 @@ public class Sqlite3DB
 	    return value;
 	}
 	
-	public ArrayList<ArrayList> getRequests(String macAddress, String domain) throws SQLException
+	public ArrayList<ArrayList> getRequests(String macAddress, String domain, String searchString) throws SQLException
 	{
+		String criteria = "";
+		
+		if(searchString != null && searchString.length() > 0)
+		{
+			criteria = "AND r.uri LIKE '%" + searchString + "%'";
+		}
+		
 		ArrayList<ArrayList> request_list = new ArrayList<ArrayList>();
 		
 		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select r.id, r.timerecorded, r.uri from requests r inner join domains d on r.domain_id = d.id inner join clients c on c.id = r.client_id where c.mac_address = '" + macAddress + "' AND d.name LIKE '" + domain + "';");
+	    ResultSet rs = stat.executeQuery("select r.id, r.timerecorded, r.uri from requests r inner join domains d on r.domain_id = d.id inner join clients c on c.id = r.client_id where c.mac_address = '" + macAddress + "' AND d.name LIKE '" + domain + "' " + criteria + ";");
 	    
 	    ArrayList<String> ids = new ArrayList<String>();
 	    ArrayList<String> timerecordeds = new ArrayList<String>();
