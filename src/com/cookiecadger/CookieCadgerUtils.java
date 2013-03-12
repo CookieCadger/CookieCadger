@@ -1,10 +1,46 @@
-package cookie.cadger.mattslifebytes.com;
+package com.cookiecadger;
 
 import javax.swing.JOptionPane;
 
 public class CookieCadgerUtils
 {
-	public static final String version = "0.90";
+	public static final String version = "1.00";
+	
+	public static enum browserChoices {
+	    FIREFOX("Mozilla Firefox"), CHROME("Google Chrome");
+	    private final String display;
+	    private browserChoices (String s) {
+	        display = s;
+	    }
+	    @Override
+	    public String toString() {
+	        return display;
+	    }
+	}
+	
+	public static enum sessionDetectionChoices {
+	    PROMPT("Always prompt"), YES("Yes"), NO("No");
+	    private final String display;
+	    private sessionDetectionChoices (String s) {
+	        display = s;
+	    }
+	    @Override
+	    public String toString() {
+	        return display;
+	    }
+	}
+	
+	public static enum databaseEngineChoices {
+	    SQLITE3("SQLite 3"), MYSQL("MySQL (experimental)");
+	    private final String display;
+	    private databaseEngineChoices (String s) {
+	        display = s;
+	    }
+	    @Override
+	    public String toString() {
+	        return display;
+	    }
+	}
 	
 	public static void DisplayAboutWindow()
 	{

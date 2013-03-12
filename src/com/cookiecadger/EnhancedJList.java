@@ -1,4 +1,4 @@
-package cookie.cadger.mattslifebytes.com;
+package com.cookiecadger;
 
 import java.awt.Component;
 import java.awt.Graphics;

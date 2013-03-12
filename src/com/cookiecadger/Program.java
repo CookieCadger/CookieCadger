@@ -1,4 +1,4 @@
-package cookie.cadger.mattslifebytes.com;
+package com.cookiecadger;
 
 import java.awt.EventQueue;
 
@@ -46,8 +46,8 @@ public class Program
 				
 				try
 				{					
-					CookieCadgerInterface cookieCadgerInterface = new CookieCadgerInterface(args);
-					cookieCadgerInterface.setVisible(true);
+					CookieCadgerFrame cookieCadgerFrame = new CookieCadgerFrame(args);
+					cookieCadgerFrame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

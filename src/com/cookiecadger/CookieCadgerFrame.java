@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>
+ * Copyright (c) 2013, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@
  * First time in Java (+ Eclipse)... sorry for the mess!  M.S. 
  */
 
-package cookie.cadger.mattslifebytes.com;
+package com.cookiecadger;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -100,6 +100,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.prefs.Preferences;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -116,9 +117,9 @@ import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 
-import cookie.cadger.mattslifebytes.com.SortedListModel.SortOrder;
+import com.cookiecadger.SortedListModel.SortOrder;
 
-public class CookieCadgerInterface extends JFrame
+public class CookieCadgerFrame extends JFrame
 {
 	private static int localRandomization;
 	private static String executionPath = System.getProperty("user.dir").replace("\\", "/");
@@ -127,6 +128,7 @@ public class CookieCadgerInterface extends JFrame
 	private EnhancedListModel clientsListModel, domainsListModel, requestsListModel, sessionsListModel;
 	private DefaultComboBoxModel<String> interfacesListModel;
 	private EnhancedJList clientsList, domainsList, requestsList, sessionsList;
+	private EnhancedJTextField txtClientSearch, txtDomainSearch, txtRequestSearch;
 	private JTextArea txtConsole;
 	private JScrollPane consoleScrollPane;
 	private JTabbedPane tabbedPane;
@@ -150,7 +152,15 @@ public class CookieCadgerInterface extends JFrame
 	private boolean bUseDemoMode = false;
 	private boolean bUseDemoModeSpecified = false;
 	private RequestInterceptor requestIntercept;
-	private EnhancedJTextField txtClientSearch, txtDomainSearch, txtRequestSearch;
+	
+	private String setting_dbEngine = null;
+	private String setting_mysqlHost = null;
+	private String setting_mysqlUser = null;
+	private String setting_mysqlPassword = null;
+	private String setting_mysqlDatabase = null;
+	
+	private Preferences prefs = null;
+	
 
 	private void StartCapture(int ethDevNumber, String pcapFile) throws IOException
 	{
@@ -1167,7 +1177,7 @@ public class CookieCadgerInterface extends JFrame
 		if(server == null)
 		{
 			server = new ProxyServer(7878);
-	        
+
 	        requestIntercept = new RequestInterceptor();
 	        requestIntercept.setRandomization(Integer.toString(localRandomization));
 	        
@@ -1396,7 +1406,7 @@ public class CookieCadgerInterface extends JFrame
 		}
 	}
 	
-	public CookieCadgerInterface(String args[]) throws Exception
+	public CookieCadgerFrame(String args[]) throws Exception
 	{
 		HandleProgramArguments(args);
 		
@@ -1419,6 +1429,8 @@ public class CookieCadgerInterface extends JFrame
 		URL url = this.getClass().getResource("/resource/cookiecadger.png");
 		BufferedImage img = ImageIO.read(url);
 		this.setIconImage(img);
+		
+		LoadPreferences();
 		
 		if(!bUseSessionDetectionSpecified)
 		{
@@ -1452,6 +1464,9 @@ public class CookieCadgerInterface extends JFrame
 		
 		JMenuItem mntmStartNewSession = new JMenuItem("Start New Dataset");
 		mnFile.add(mntmStartNewSession);
+
+		JMenuItem mntmSettings = new JMenuItem("Program Settings");
+		mnFile.add(mntmSettings);
 		
 		JSeparator separator = new JSeparator();
 		mnFile.add(separator);
@@ -1951,6 +1966,14 @@ public class CookieCadgerInterface extends JFrame
 			}
 		});
 
+		mntmSettings.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e)
+			{				
+				SettingsDialog settingsInterface = new SettingsDialog();
+				settingsInterface.setVisible(true);
+			}
+		});
+		
 		mntmOpenACapture.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent arg0)
@@ -2527,6 +2550,33 @@ public class CookieCadgerInterface extends JFrame
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	private void LoadPreferences()
+	{
+		// Retrieve the user preference node
+		if(prefs == null)
+		{
+			prefs = Preferences.userRoot().node(this.getClass().getName());
+		}
+		
+		setting_dbEngine = prefs.get("dbEngine", "sqlite");
+		setting_mysqlHost = prefs.get("dbEngine", "mysqlHost");
+		setting_mysqlUser = prefs.get("dbEngine", "mysqlUser");
+		setting_mysqlPassword = prefs.get("dbEngine", "mysqlPassword");
+		setting_mysqlDatabase = prefs.get("dbEngine", "mysqlDatabase");
+	}
+	
+	private void SavePreferences()
+	{
+		/*
+		private String setting_dbEngine = null;
+		private String setting_mysqlHost = null;
+		private String setting_mysqlUser = null;
+		private String setting_mysqlPassword = null;
+		private String setting_mysqlDatabase = null;
+		*/
+		
 	}
 	
 	private void Console(String text, boolean bAutoScroll)

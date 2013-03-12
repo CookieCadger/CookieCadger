@@ -1,4 +1,4 @@
-package cookie.cadger.mattslifebytes.com;
+package com.cookiecadger;
 
 // Thanks, Marty Lamb
 // http://stackoverflow.com/questions/659796/run-external-program-from-java-read-output-allow-interruption

@@ -1,4 +1,4 @@
-package cookie.cadger.mattslifebytes.com;
+package com.cookiecadger;
 
 /**
  * Handles various events specific to the Mac OSX environment.
