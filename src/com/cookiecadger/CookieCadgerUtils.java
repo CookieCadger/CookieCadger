@@ -1,10 +1,26 @@
 package com.cookiecadger;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.prefs.Preferences;
+
 import javax.swing.JOptionPane;
 
 public class CookieCadgerUtils
 {
 	public static final String version = "1.00";
+	public static HashMap<String, Object> programSettings;
+	private static Preferences prefs = null;
+	private static final int localRandomization = 1000 + (int)(Math.random() * ((20110 - 1000) + 1));;
+	
+	//														// Ubuntu/Debian	// Fedora/RedHat			// BackTrack 5 R3	// Windows 32-bit							//Windows 64-bit									//Mac OS X
+	public final static String[] knownTsharkLocations = {	"/usr/bin/tshark",	"/usr/local/bin/tshark",	"/usr/sbin/tshark",	"C:\\Program Files\\Wireshark\\tshark.exe",	"C:\\Program Files (x86)\\Wireshark\\tshark.exe",	"/Applications/Wireshark.app/Contents/Resources/bin/tshark" };
 	
 	public static enum browserChoices {
 	    FIREFOX("Mozilla Firefox"), CHROME("Google Chrome");
@@ -31,7 +47,7 @@ public class CookieCadgerUtils
 	}
 	
 	public static enum databaseEngineChoices {
-	    SQLITE3("SQLite 3"), MYSQL("MySQL (experimental)");
+	    SQLITE("SQLite"), MYSQL("MySQL (works with multiple instances)");
 	    private final String display;
 	    private databaseEngineChoices (String s) {
 	        display = s;
@@ -40,6 +56,52 @@ public class CookieCadgerUtils
 	    public String toString() {
 	        return display;
 	    }
+	}
+	
+	public static void LoadPreferences()
+	{
+		// Retrieve the user preference node
+		if(prefs == null)
+		{
+			prefs = Preferences.userRoot().node(com.cookiecadger.CookieCadgerUtils.class.getName());
+		}
+		
+		programSettings = new HashMap<String,Object>();
+		
+		programSettings.put("dbEngine", prefs.get("dbEngine", "sqlite"));
+		programSettings.put("databaseHost", prefs.get("databaseHost", ""));
+		programSettings.put("databaseUser", prefs.get("databaseUser", ""));
+		programSettings.put("databasePass", prefs.get("databasePass", ""));
+		programSettings.put("databaseName", prefs.get("databaseName", ""));
+		programSettings.put("databaseRefreshRate", prefs.getInt("databaseRefreshRate", 15));
+	}
+	
+	public static void SavePreferences()
+	{
+		for (Iterator<Map.Entry<String, Object>> it = programSettings.entrySet().iterator(); it.hasNext();)
+		{
+		    Map.Entry<String, Object> entry = it.next();
+		    String key = entry.getKey();
+		    Object value = entry.getValue();
+		    
+		    if(value instanceof String)
+		    {
+		    	prefs.put(key, (String)value);
+		    }
+		    else if(value instanceof Boolean)
+		    {
+		    	prefs.putBoolean(key, (Boolean)value);
+		    }
+		    else if(value instanceof Integer)
+		    {
+		    	prefs.putInt(key, (Integer)value);
+		    }
+		}
+	}
+	
+	public static int GetLocalRandomization()
+	{
+		return localRandomization;
 	}
 	
 	public static void DisplayAboutWindow()
@@ -71,5 +133,36 @@ public class CookieCadgerUtils
 				"(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\n" +
 				"SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 				);
+	}
+	
+	public static String readUrl(String urlString, String userAgent, String accept, String cookies) throws Exception
+	{
+	    BufferedReader reader = null;
+	    try {
+	        URL url = new URL(urlString);
+	        URLConnection urlConn = url.openConnection();
+	        
+	        if(cookies != null && !cookies.isEmpty())
+	        	urlConn.setRequestProperty("Cookie", cookies);
+	        
+	        urlConn.setRequestProperty("User-Agent", userAgent);
+	        urlConn.setRequestProperty("Accept", accept + ", " + Integer.toString(localRandomization));
+	        
+	        reader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
+	        StringBuffer buffer = new StringBuffer();
+	        int read;
+	        char[] chars = new char[1024];
+	        while ((read = reader.read(chars)) != -1)
+	            buffer.append(chars, 0, read); 
+
+	        return buffer.toString();
+	    } catch (FileNotFoundException ex) {
+	    	// Nothing
+	    } finally {
+	        if (reader != null)
+	            reader.close();
+	    }
+	    
+	    return "";
 	}
 }

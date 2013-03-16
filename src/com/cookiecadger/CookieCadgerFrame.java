@@ -35,7 +35,6 @@ package com.cookiecadger;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Desktop;
-import java.awt.HeadlessException;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -72,6 +71,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 import javax.swing.JMenuBar;
@@ -100,7 +100,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.prefs.Preferences;
+import java.util.Iterator;
+import java.util.Map;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -121,7 +122,6 @@ import com.cookiecadger.SortedListModel.SortOrder;
 
 public class CookieCadgerFrame extends JFrame
 {
-	private static int localRandomization;
 	private static String executionPath = System.getProperty("user.dir").replace("\\", "/");
 	
 	private JPanel contentPane, requestsPanel, sessionsPanel;
@@ -145,21 +145,15 @@ public class CookieCadgerFrame extends JFrame
 	private WebDriver driver = null;
 	private ProxyServer server = null;
 	private Proxy proxy = null;
-	private Sqlite3DB dbInstance = null;
+	private DatabaseHandler dbInstance = null;
+	private String dbEngine = null;
+	private boolean bUsingExternalDatabase = false;
 	private boolean bUseSessionDetection = false;
 	private boolean bUseSessionDetectionSpecified = false;
 	private boolean bUpdateChecking = true;
 	private boolean bUseDemoMode = false;
 	private boolean bUseDemoModeSpecified = false;
 	private RequestInterceptor requestIntercept;
-	
-	private String setting_dbEngine = null;
-	private String setting_mysqlHost = null;
-	private String setting_mysqlUser = null;
-	private String setting_mysqlPassword = null;
-	private String setting_mysqlDatabase = null;
-	
-	private Preferences prefs = null;
 	
 
 	private void StartCapture(int ethDevNumber, String pcapFile) throws IOException
@@ -174,7 +168,7 @@ public class CookieCadgerFrame extends JFrame
 		
 		if(pcapFile.isEmpty())
 		{			
-			Console("Opening '" + deviceName.get(ethDevNumber) + "' for traffic capture.", true);
+			Console("Opening '" + deviceName.get(ethDevNumber) + "' for traffic capture.");
 			pb = new ProcessBuilder(new String[] { pathToTshark, "-i", deviceName.get(ethDevNumber), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
 			pb.redirectErrorStream(true);
 			deviceCaptureProcess.set(ethDevNumber, pb.start());
@@ -183,7 +177,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 		else
 		{
-			Console("Opening '" + pcapFile + "' for traffic capture.", true);
+			Console("Opening '" + pcapFile + "' for traffic capture.");
 			pb = new ProcessBuilder(new String[] { pathToTshark, "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
 			pb.redirectErrorStream(true);
 			proc = pb.start();
@@ -251,7 +245,7 @@ public class CookieCadgerFrame extends JFrame
 						
 						// When Cookie Cadger creates requests it appends a randomization
 						// to the Accept header. Check for it and ignore if matched.
-						if(accept.contains(", " + Integer.toString(localRandomization)))
+						if(accept.contains(", " + Integer.toString(CookieCadgerUtils.GetLocalRandomization())))
 						{
 							continue;
 						}
@@ -334,7 +328,6 @@ public class CookieCadgerFrame extends JFrame
 		catch (Exception e)
 		{
 			e.printStackTrace();
-			Console("EXCEPTION", true);
 
 			if(!pcapFile.isEmpty() && proc != null)
 			{
@@ -364,26 +357,26 @@ public class CookieCadgerFrame extends JFrame
 		
 		if(pcapFile.isEmpty() && runTimeInSeconds <= 20)
 		{
-			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================", true);
-			Console(deviceName.get(ethDevNumber) + ": " + "Start of diagnostic information for interface '" + deviceName.get(ethDevNumber) + "'", true);
-			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================", true);
+			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================");
+			Console(deviceName.get(ethDevNumber) + ": " + "Start of diagnostic information for interface '" + deviceName.get(ethDevNumber) + "'");
+			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================");
 			
 			for (String output : nonTabbedOutput)
 			{
-				Console(deviceName.get(ethDevNumber) + ": " + output, true);				
+				Console(deviceName.get(ethDevNumber) + ": " + output);				
 			}
 			
-			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================", true);
-			Console(deviceName.get(ethDevNumber) + ": " + "Potential error detected! Capture stopped / died in " + Integer.toString(runTimeInSeconds) + " seconds.", true);
-			Console(deviceName.get(ethDevNumber) + ": " + "All messages from the 'tshark' program have been printed above to assist you in solving any errors.", true);
-			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================", true);
+			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================");
+			Console(deviceName.get(ethDevNumber) + ": " + "Potential error detected! Capture stopped / died in " + Integer.toString(runTimeInSeconds) + " seconds.");
+			Console(deviceName.get(ethDevNumber) + ": " + "All messages from the 'tshark' program have been printed above to assist you in solving any errors.");
+			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================");
 		}
 		else
 		{
 			if(pcapFile.isEmpty())
-				Console("'" + deviceName.get(ethDevNumber) + "' has been closed and is finished with traffic capture. Capture duration: " + Integer.toString(runTimeInSeconds) + " seconds.", true);
+				Console("'" + deviceName.get(ethDevNumber) + "' has been closed and is finished with traffic capture. Capture duration: " + Integer.toString(runTimeInSeconds) + " seconds.");
 			else
-				Console("'" + pcapFile + "' has finished processing. Processing duration: " + Integer.toString(runTimeInSeconds) + " seconds.", true);
+				Console("'" + pcapFile + "' has finished processing. Processing duration: " + Integer.toString(runTimeInSeconds) + " seconds.");
 		}
 	}
 	
@@ -414,47 +407,61 @@ public class CookieCadgerFrame extends JFrame
 		SetCaptureButtonText();
 	}
 	
-	private void ResetDataset(boolean bInitTables)
+	private void ClearGUI()
 	{
-		try
-		{
-			// If this user session is not empty set
-			if(dbInstance.getMacs(false, null).length > 0)
-			{
-			    // Ask the user to save
-			    int saveDatasetResult = JOptionPane.showConfirmDialog(
-			            contentPane,
-			            		"Would you like to save the current dataset?",
-			            "Save?",
-			            JOptionPane.YES_NO_OPTION);
-			    
-			    if (saveDatasetResult == JOptionPane.YES_OPTION)
-			    {
-			    	dbInstance.saveDatabase();
-			    }
-			}
-		} catch (HeadlessException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (SQLException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		
-		if(bInitTables)
-		{
-			try {
-				dbInstance.initTables();
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
 		requestsListModel.clear();
 		domainsListModel.clear();
 		clientsListModel.clear();
 		sessionsListModel.clear();
+	}
+	
+	private boolean ResetData()
+	{
+		// If sqlite, and this user session is not empty set
+		if(dbEngine.equals("sqlite"))
+		{
+		    // Ask the user to save
+		    int saveDatasetResult = JOptionPane.showConfirmDialog(
+		            contentPane,
+		            		"Would you like to save the current dataset?",
+		            "Save?",
+		            JOptionPane.YES_NO_CANCEL_OPTION);
+		    
+		    if (saveDatasetResult == JOptionPane.CANCEL_OPTION)
+	    	{
+		    	return false;
+	    	}
+		    else if (saveDatasetResult == JOptionPane.YES_OPTION)
+		    {
+		    	dbInstance.saveDatabase();
+		    }
+		}
+		else
+		{
+		    // Ask the user if they want to reset external DBs
+		    int saveDatasetResult = JOptionPane.showConfirmDialog(
+		            contentPane,
+		            		"Would you like to clear all data from the external database?\nTHIS CANNOT BE UNDONE!",
+		            "Clear all data?",
+		            JOptionPane.YES_NO_OPTION);
+		    
+		    if (saveDatasetResult == JOptionPane.NO_OPTION)
+		    {
+		    	return false;
+		    }
+		}
+
+		try
+		{
+			dbInstance.clearTables();
+		}
+		catch (SQLException e)
+		{
+			e.printStackTrace();
+		}
+		
+		// Made it to here? That means we've committed to deletion, let the caller know
+		return true;
 	}
 	
 	private void SetCaptureButtonText()
@@ -507,7 +514,6 @@ public class CookieCadgerFrame extends JFrame
 		}
 		catch (SQLException e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -537,13 +543,17 @@ public class CookieCadgerFrame extends JFrame
 		}
 		catch (SQLException e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 				
 		try
 		{
 			reqID = dbInstance.createRequest(requestUri, userAgent, refererUri, cookieData, authorization, authBasic, domainID, clientID);
+			
+			// Generate hover tooltip text and save it back to the database.
+			// This allows us to only have to do this heavy processing once.
+			String description = GenerateDescriptionForRequest(reqID, true, true);
+			dbInstance.setStringValue("requests", "description", description, "id", Integer.toString(reqID));
 			
 			// Update the requests list if necessary
 			if(!clientsList.isSelectionEmpty() && ((EnhancedJListItem)clientsList.getSelectedValue()).toString().equals(macAddress) && !domainsList.isSelectionEmpty() && (((EnhancedJListItem)domainsList.getSelectedValue()).toString().equals(requestHost) || (((EnhancedJListItem)domainsList.getSelectedValue()).toString().equals("[ All Domains ]"))) &&
@@ -570,12 +580,13 @@ public class CookieCadgerFrame extends JFrame
 					requestDisplay = requestUri;
 				}
 				
-				requestsListModel.addElement(new EnhancedJListItem(reqID, dateString + ": " + requestDisplay, null));
+				EnhancedJListItem requestItem = new EnhancedJListItem(reqID, dateString + ": " + requestDisplay, null);
+				requestItem.setDescription(description);
+				requestsListModel.addElement(requestItem);
 			}
 		}
 		catch (SQLException e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -588,7 +599,6 @@ public class CookieCadgerFrame extends JFrame
 				clientsList.performHighlight(macAddress, Color.BLUE);
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -611,6 +621,8 @@ public class CookieCadgerFrame extends JFrame
             public Object doInBackground()
         	{
 				// For a unique token, we'll use a quick concat of the user MAC and the request host
+        		// And yes, this means that we can't pick up multiple logins to the same site from the
+        		// same client. And while this is sad, there's not really a better way...
         		String uniqueID = macAddress + "," + requestHost;
 				
 				// Now check for the token. If new, pass on to handler classes
@@ -691,7 +703,6 @@ public class CookieCadgerFrame extends JFrame
 					}
 				} catch (Exception e1)
 				{
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
         		
@@ -722,19 +733,20 @@ public class CookieCadgerFrame extends JFrame
 		return -1;
 	}
 	
-	private void ChangeClientsList()
+	private void ChangeClientsList(boolean bClearFirst)
 	{
 		int clients = 0;
 		final int clientCount;
+		final boolean bClearListFirst;
 		
 		try {
 			clients = dbInstance.getClientCount();
 		} catch (SQLException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		
 		clientCount = clients;
+		bClearListFirst = bClearFirst;
 		
 		consoleScrollPane.setVisible(false);
 		loadingRequestProgressBar.setString("Loading client list, please wait... [0 / " + clientCount + "]");
@@ -753,9 +765,12 @@ public class CookieCadgerFrame extends JFrame
         			bPreviousSelection = true;
         			previousSelection = ((EnhancedJListItem)clientsList.getSelectedValue()).toString();
         		}
-        		
-        		clientsListModel.clear();
-        		clientsList.setModel(new EnhancedListModel());
+        
+        		if(bClearListFirst)
+        		{
+        			clientsListModel.clear();
+        			clientsList.setModel(new EnhancedListModel());
+        		}
         		
         		try
         		{
@@ -790,20 +805,22 @@ public class CookieCadgerFrame extends JFrame
         		}
         		catch (SQLException e)
         		{
-        			// TODO Auto-generated catch block
         			e.printStackTrace();
         		}
-        		
-        		clientsList.setModel(clientsListModel);
-        		
-        		if(bPreviousSelection)
+
+        		if(bClearListFirst)
         		{
-        			// If the newly generated list still contains the previously selected value, show it
-        			if (clientsListModel.contains(previousSelection))
-        			{
-        				int index = clientsListModel.indexOf(previousSelection);
-        				clientsList.setSelectedValue(clientsListModel.getElementAt(index), true);
-        			}
+        			clientsList.setModel(clientsListModel);
+        			
+            		if(bPreviousSelection)
+            		{
+            			// If the newly generated list still contains the previously selected value, show it
+            			if (clientsListModel.contains(previousSelection))
+            			{
+            				int index = clientsListModel.indexOf(previousSelection);
+            				clientsList.setSelectedValue(clientsListModel.getElementAt(index), true);
+            			}
+            		}
         		}
 		    	
                 loadingRequestProgressBar.setVisible(false);
@@ -838,7 +855,6 @@ public class CookieCadgerFrame extends JFrame
 			}
 		} catch (SQLException e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -879,6 +895,7 @@ public class CookieCadgerFrame extends JFrame
 			ArrayList<String> ids = requests.get(0);
 			ArrayList<String> timerecordeds = requests.get(1);
 			ArrayList<String> uris = requests.get(2);
+			ArrayList<String> descriptions = requests.get(3);
 			
 			for (int i = 0; i < ids.size(); i++)
 			{
@@ -901,6 +918,7 @@ public class CookieCadgerFrame extends JFrame
 
 				int requestID = new Integer(ids.get(i));
 				String uri = uris.get(i);
+				String description = descriptions.get(i);
 				
 				// If showing all domains in the request list, make sure the full request Url gets displayed
 				if(bShowAllDomains)
@@ -910,14 +928,13 @@ public class CookieCadgerFrame extends JFrame
 					uri = domain + uri;
 				}
 
-				requestsListModel.addElement(new EnhancedJListItem(requestID, dateString + ": " + uri, null));
-				
-				UpdateDescriptionForRequest(requestID);
+				EnhancedJListItem requestItem = new EnhancedJListItem(requestID, dateString + ": " + uri, null);
+				requestItem.setDescription(description);
+				requestsListModel.addElement(requestItem);
 			}
 		}
 		catch (SQLException e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -932,15 +949,19 @@ public class CookieCadgerFrame extends JFrame
 		}
 	}
 
-	private void ChangeSessionsList()
+	private void ChangeSessionsList(boolean bClearFirst)
 	{
+		final boolean bClearListFirst;
+		bClearListFirst = bClearFirst;
+		
 		Thread changeSessionsListThread = new Thread(new Runnable()
 		{
 		     public void run()
 		     {
 				Image photo = null;
 				
-				sessionsListModel.clear();
+				if(bClearListFirst)
+					sessionsListModel.clear();
 				
 				EnhancedJListItem[] sessions;
 				try
@@ -949,6 +970,9 @@ public class CookieCadgerFrame extends JFrame
 					
 					for (EnhancedJListItem item : sessions)
 					{
+						if(sessionsListModel.contains(item.getID()))
+							continue;
+
 						String profilePhotoUrl = item.getProfileImageUrl();
 						boolean bHaveImage = false;
 						
@@ -964,9 +988,6 @@ public class CookieCadgerFrame extends JFrame
 							}
 							catch (Exception e)
 							{
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-								
 								bHaveImage = false;
 							}
 						}
@@ -977,7 +998,6 @@ public class CookieCadgerFrame extends JFrame
 						sessionsListModel.addElement(item);
 					}
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 		     }
@@ -1018,31 +1038,29 @@ public class CookieCadgerFrame extends JFrame
 		
 		try
 		{
-			String netbiosHost = dbInstance.getStringValue("clients", "netbios_hostname", "mac_address", macAddress);
-			String mdnsHost = dbInstance.getStringValue("clients", "mdns_hostname", "mac_address", macAddress);
-			String ipv4Address = dbInstance.getStringValue("clients", "ipv4_address", "mac_address", macAddress);
-			String ipv6Address = dbInstance.getStringValue("clients", "ipv6_address", "mac_address", macAddress);
+			String[] fields = new String[] { "netbios_hostname", "mdns_hostname", "ipv4_address", "ipv6_address" };
+			HashMap<String,String> resultMap = dbInstance.getStringValue("clients", fields, "mac_address", macAddress);
 			
 			String notesTxt = htmlOpen + fontOpen + boldOpen + "MAC Address: " + boldClose + macAddress;
 			
-			if(!ipv4Address.isEmpty())
+			if(!resultMap.get("ipv4_address").isEmpty())
 			{
-				notesTxt = notesTxt + newLine + boldOpen + "IPv4 Address: " + boldClose + ipv4Address;
+				notesTxt = notesTxt + newLine + boldOpen + "IPv4 Address: " + boldClose + resultMap.get("ipv4_address");
 			}
 			
-			if(!ipv6Address.isEmpty())
+			if(!resultMap.get("ipv6_address").isEmpty())
 			{				
-				notesTxt = notesTxt + newLine + boldOpen + "IPv6 Address: " + boldClose + ipv6Address;
+				notesTxt = notesTxt + newLine + boldOpen + "IPv6 Address: " + boldClose + resultMap.get("ipv6_address");
 			}
 			
-			if(!netbiosHost.isEmpty())
+			if(!resultMap.get("netbios_hostname").isEmpty())
 			{
-				notesTxt = notesTxt + newLine + boldOpen + "Host Name (NetBIOS): " + boldClose + netbiosHost;
+				notesTxt = notesTxt + newLine + boldOpen + "Host Name (NetBIOS): " + boldClose + resultMap.get("netbios_hostname");
 			}
 			
-			if(!mdnsHost.isEmpty())
+			if(!resultMap.get("mdns_hostname").isEmpty())
 			{
-				notesTxt = notesTxt + newLine + boldOpen + "Host Name (mDNS/Bonjour): " + boldClose + mdnsHost;
+				notesTxt = notesTxt + newLine + boldOpen + "Host Name (mDNS/Bonjour): " + boldClose + resultMap.get("mdns_hostname");
 			}
 
 			String[] userAgents = dbInstance.getUserAgents(macAddress);
@@ -1069,20 +1087,10 @@ public class CookieCadgerFrame extends JFrame
 			return notesTxt;
 
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		return null;
-	}
-
-	private void UpdateDescriptionForRequest(int request)
-	{
-		if(requestsListModel.contains(request))
-		{
-			int location = requestsListModel.indexOf(request);
-			((EnhancedJListItem)requestsListModel.getElementAt(location)).setDescription(GenerateDescriptionForRequest(request, true, true));
-		}
 	}
 	
 	private String GenerateDescriptionForRequest(int requestID, boolean bUseHTML, boolean bTruncate)
@@ -1107,22 +1115,26 @@ public class CookieCadgerFrame extends JFrame
 		}
 		
 		try {
-			String timeRecorded = dbInstance.getStringValue("requests", "timerecorded", "id", Integer.toString(requestID));
+			String[] fields = new String[] { "timerecorded", "useragent", "referer", "auth_basic", "cookies", "uri" };
+			HashMap<String,String> resultMap = dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
+			
+			String timeRecorded = resultMap.get("timerecorded");
+			String userAgent = resultMap.get("useragent");
+			String referer = resultMap.get("referer");
+			String authBasic = resultMap.get("auth_basic");
+			String cookies = resultMap.get("cookies");
+			String uri = resultMap.get("uri");
 			
 			long timeStamp = new Long(timeRecorded);
-			Date then = new Date((long)timeStamp * 1000);		
+			Date then = new Date((long)timeStamp * 1000);
 			String dateString = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(then);
 			
-			String uri = dbInstance.getStringValue("requests", "uri", "id", Integer.toString(requestID));
 			if(bTruncate && uri.length() > 90)
 				uri = uri.substring(0, 86) + boldOpen + " ..." + boldClose;
 			 
 			String notesTxt = htmlOpen + fontOpen + boldOpen + "Date: " + boldClose + dateString;
 			notesTxt = notesTxt + newLine + boldOpen + "Uri: " + boldClose + uri;
-			String userAgent = dbInstance.getStringValue("requests", "useragent", "id", Integer.toString(requestID));
-			String referer = dbInstance.getStringValue("requests", "referer", "id", Integer.toString(requestID));
-			String authBasic = dbInstance.getStringValue("requests", "auth_basic", "id", Integer.toString(requestID));
-			String cookies = dbInstance.getStringValue("requests", "cookies", "id", Integer.toString(requestID));
+
 			
 			if(!userAgent.isEmpty())
 			{
@@ -1159,7 +1171,6 @@ public class CookieCadgerFrame extends JFrame
 			return notesTxt;
 			
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -1179,16 +1190,15 @@ public class CookieCadgerFrame extends JFrame
 			server = new ProxyServer(7878);
 
 	        requestIntercept = new RequestInterceptor();
-	        requestIntercept.setRandomization(Integer.toString(localRandomization));
+	        requestIntercept.setRandomization(Integer.toString(CookieCadgerUtils.GetLocalRandomization()));
 	        
 	        try {
 				server.start();
 				server.addRequestInterceptor(requestIntercept);
 				proxy = server.seleniumProxy(); // Set HTTP proxy
 				proxy.setSslProxy(null); // Unset SSL entirely
-;				
+
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}	
 		}
@@ -1256,8 +1266,22 @@ public class CookieCadgerFrame extends JFrame
 	
 	private void PrepareToCloseApplication()
 	{
-		// Reset DB, which will ask user to save
-		ResetDataset(false);
+		if(dbEngine.equals("sqlite"))
+		{
+			// Try to get the database unloaded
+			try
+			{
+				// Reset DB, which will ask user to save
+				boolean bResetCommit = ResetData();
+				
+				if(!bResetCommit)
+					return;
+			}
+			catch (Exception ex)
+			{
+				ex.printStackTrace();
+			}
+		}
 		
 		// Get the WebDriver fully unloaded
 		try
@@ -1286,6 +1310,10 @@ public class CookieCadgerFrame extends JFrame
 		{
 			ex.printStackTrace();
 		}
+		
+		// All done, goodbye
+		dispose();
+		System.exit(0);
 	}
 	
 	private void HandleProgramArguments(String[] args)
@@ -1418,19 +1446,29 @@ public class CookieCadgerFrame extends JFrame
 				super.windowClosing(e);
 				PrepareToCloseApplication();
 			}
-		});	    
-		dbInstance = new Sqlite3DB();
-		localRandomization = 1000 + (int)(Math.random() * ((20110 - 1000) + 1));
+		});
+		
+		CookieCadgerUtils.LoadPreferences();
+		dbEngine = (String)CookieCadgerUtils.programSettings.get("dbEngine");
+		bUsingExternalDatabase = !dbEngine.equals("sqlite");
+		
+		try
+		{
+			dbInstance = new DatabaseHandler();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+			JOptionPane.showMessageDialog(null, "Database failed to initalize. Please check your settings.");
+		}
 		
 		setTitle("Cookie Cadger");
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		setBounds(100, 100, 950, 680);
 		
 		URL url = this.getClass().getResource("/resource/cookiecadger.png");
 		BufferedImage img = ImageIO.read(url);
 		this.setIconImage(img);
-		
-		LoadPreferences();
 		
 		if(!bUseSessionDetectionSpecified)
 		{
@@ -1471,13 +1509,18 @@ public class CookieCadgerFrame extends JFrame
 		JSeparator separator = new JSeparator();
 		mnFile.add(separator);
 		
-		JMenuItem mntmSaveSession = new JMenuItem("Save Dataset");
-		mnFile.add(mntmSaveSession);
-		
-		JMenuItem mntmLoadSession = new JMenuItem("Load Dataset");
-		mnFile.add(mntmLoadSession);
-		
-		mnFile.add(new JSeparator());
+		JMenuItem mntmSaveSession = null;
+		JMenuItem mntmLoadSession = null;
+		if(!bUsingExternalDatabase)
+		{
+			mntmSaveSession = new JMenuItem("Save Dataset");
+			mnFile.add(mntmSaveSession);
+			
+			mntmLoadSession = new JMenuItem("Load Dataset");
+			mnFile.add(mntmLoadSession);
+
+			mnFile.add(new JSeparator());
+		}
 		
 		JMenuItem mntmOpenACapture = new JMenuItem("Open a Capture File (*.pcap)");
 		mnFile.add(mntmOpenACapture);
@@ -1544,7 +1587,6 @@ public class CookieCadgerFrame extends JFrame
 			
 			if(bUseDemoModeSpecified)
 			{
-				System.out.println("DEMO SPECIFIED: " + bUseDemoMode);
 				chckbxAutomaticallyLoadSessions.setSelected(bUseDemoMode);
 			}
 			sessionsPanel.add(chckbxAutomaticallyLoadSessions);
@@ -1568,12 +1610,17 @@ public class CookieCadgerFrame extends JFrame
 							{
 								int requestID = dbInstance.getIntegerValue("sessions", "request_id", "id", Integer.toString(sessionID));
 								int domainID = dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
-								String domain = dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
-								String useragent = dbInstance.getStringValue("requests", "useragent", "id", Integer.toString(requestID));
-								String referer = dbInstance.getStringValue("requests", "referer", "id", Integer.toString(requestID));
-								String authorization = dbInstance.getStringValue("requests", "authorization", "id", Integer.toString(requestID));
-								String cookies = dbInstance.getStringValue("requests", "cookies", "id", Integer.toString(requestID));
 								String sessionUri = dbInstance.getStringValue("sessions", "session_uri", "id", Integer.toString(sessionID));
+								String domain = dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
+								
+								String[] fields = new String[] { "useragent", "referer", "authorization", "cookies", "uri" };
+								HashMap<String,String> resultMap = dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
+								
+								String useragent = resultMap.get("useragent");
+								String referer = resultMap.get("referer");
+								String authorization = resultMap.get("authorization");
+								String cookies = resultMap.get("cookies");
+
 								String uri;
 								
 								if(sessionUri != null && !sessionUri.isEmpty())
@@ -1582,13 +1629,12 @@ public class CookieCadgerFrame extends JFrame
 								}
 								else
 								{
-									uri = dbInstance.getStringValue("requests", "uri", "id", Integer.toString(requestID));
+									uri = resultMap.get("uri");
 								}
 
 								LoadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
 							} catch (Exception e)
 							{
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 			        		
@@ -1658,7 +1704,6 @@ public class CookieCadgerFrame extends JFrame
 							    }
 							});
 						} catch (SQLException e1) {
-							// TODO Auto-generated catch block
 							e1.printStackTrace();
 						}
 						
@@ -1961,8 +2006,19 @@ public class CookieCadgerFrame extends JFrame
 		 */
 		
 		mntmStartNewSession.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {				
-				ResetDataset(true);
+			public void actionPerformed(ActionEvent e)
+			{
+				boolean resetCommit = ResetData();
+				
+				if(resetCommit)
+				{
+					ClearGUI();
+					try {
+						dbInstance.initTables();
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				}
 			}
 		});
 
@@ -2006,7 +2062,6 @@ public class CookieCadgerFrame extends JFrame
 				                consoleScrollPane.setVisible(true);
 					                
 							} catch (IOException e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 			        		
@@ -2019,34 +2074,44 @@ public class CookieCadgerFrame extends JFrame
 			}
 		});
 
-
-		mntmSaveSession.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				dbInstance.saveDatabase();
-			}
-		});
-
-
-		mntmLoadSession.addActionListener(new ActionListener()
+		if(!bUsingExternalDatabase)
 		{
-			public void actionPerformed(ActionEvent arg0)
-			{
-				ResetDataset(false); // Do not re-init tables
-				dbInstance.openDatabase();
-		        
-		    	ChangeClientsList();
-		    	
-		    	if(bUseSessionDetection)
-		    		ChangeSessionsList();
-			}
-		});
+			mntmSaveSession.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					dbInstance.saveDatabase();
+				}
+			});
 
+			mntmLoadSession.addActionListener(new ActionListener()
+			{
+				public void actionPerformed(ActionEvent arg0)
+				{
+					boolean resetCommit = ResetData();
+					
+					if(resetCommit)
+					{
+						ClearGUI();
+						
+						try {
+							dbInstance.initTables();
+						} catch (SQLException e) {
+							e.printStackTrace();
+						}
+						
+						dbInstance.openDatabase();
+				        
+				    	ChangeClientsList(true);
+				    	
+				    	if(bUseSessionDetection)
+				    		ChangeSessionsList(true);
+					}
+				}
+			});
+		}
 
 		mntmExit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				PrepareToCloseApplication();
-				dispose();
-				System.exit(0);
 			}
 		});
 
@@ -2100,13 +2165,13 @@ public class CookieCadgerFrame extends JFrame
 		// Listen for changes in the client filter textbox
 		txtClientSearch.getDocument().addDocumentListener(new DocumentListener() {
 		  public void changedUpdate(DocumentEvent e) {
-			  ChangeClientsList();
+			  ChangeClientsList(true);
 		  }
 		  public void removeUpdate(DocumentEvent e) {
-			  ChangeClientsList();
+			  ChangeClientsList(true);
 		  }
 		  public void insertUpdate(DocumentEvent e) {
-			  ChangeClientsList();
+			  ChangeClientsList(true);
 		  }
 		});
 		
@@ -2176,14 +2241,17 @@ public class CookieCadgerFrame extends JFrame
 								
 								String domain = ((EnhancedJListItem)domainsList.getSelectedValue()).toString();
 								String uri = "/";
-								String useragent = dbInstance.getStringValue("requests", "useragent", "id", Integer.toString(requestID));
-								String referer = dbInstance.getStringValue("requests", "referer", "id", Integer.toString(requestID));
-								String authorization = dbInstance.getStringValue("requests", "authorization", "id", Integer.toString(requestID));
-								String cookies = dbInstance.getStringValue("requests", "cookies", "id", Integer.toString(requestID));
+								
+								String[] fields = new String[] { "useragent", "referer", "authorization", "cookies" };
+								HashMap<String,String> resultMap = dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
+								
+								String useragent = resultMap.get("useragent");
+								String referer = resultMap.get("referer");
+								String authorization = resultMap.get("authorization");
+								String cookies = resultMap.get("cookies");
 								
 								LoadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
 							} catch (SQLException e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 							
@@ -2212,15 +2280,18 @@ public class CookieCadgerFrame extends JFrame
 							try {
 								int domainID = dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
 								String domain = dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
-								String uri = dbInstance.getStringValue("requests", "uri", "id", Integer.toString(requestID));
-								String useragent = dbInstance.getStringValue("requests", "useragent", "id", Integer.toString(requestID));
-								String referer = dbInstance.getStringValue("requests", "referer", "id", Integer.toString(requestID));
-								String authorization = dbInstance.getStringValue("requests", "authorization", "id", Integer.toString(requestID));
-								String cookies = dbInstance.getStringValue("requests", "cookies", "id", Integer.toString(requestID));
+								
+								String[] fields = new String[] { "uri", "useragent", "referer", "authorization", "cookies" };
+								HashMap<String,String> resultMap = dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
+								
+								String uri = resultMap.get("uri");
+								String useragent = resultMap.get("useragent");
+								String referer = resultMap.get("referer");
+								String authorization = resultMap.get("authorization");
+								String cookies = resultMap.get("cookies");
 								
 								LoadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
 							} catch (SQLException e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 			        		
@@ -2266,7 +2337,6 @@ public class CookieCadgerFrame extends JFrame
 								int selectedInterface = ((JComboBox<?>)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
 								StartCapture(selectedInterface, "");
 							} catch (IOException e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 							
@@ -2285,7 +2355,7 @@ public class CookieCadgerFrame extends JFrame
 				requestsListModel.clear();
 				
 				// Status toggled, re-create the mac list
-				ChangeClientsList();
+				ChangeClientsList(true);
 			}
 		});
 		
@@ -2296,7 +2366,7 @@ public class CookieCadgerFrame extends JFrame
 		InitializeDevices();
 		
 		// Name and license
-		Console("\n\nCookie Cadger (v"+ CookieCadgerUtils.version +")\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the terms of the FreeBSD license.\n", true);
+		Console("\n\nCookie Cadger (v"+ CookieCadgerUtils.version +")\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the terms of the FreeBSD license.\n");
 		
 		// Populate the ComboBox	
 		for (int i = 0; i < deviceName.size(); i++)
@@ -2352,7 +2422,7 @@ public class CookieCadgerFrame extends JFrame
 	        	        	macAddressHashStringBuilder.append(Integer.toString((macAddressHash[i] & 0xff) + 0x100, 16).substring(1));
 	        	        }
 	        	        String macAddressHashString = macAddressHashStringBuilder.toString();
-						String releasedVersion = readUrl("https://www.cookiecadger.com/update/?update=" + CookieCadgerUtils.version + "; " + System.getProperty("os.name") + "; " + System.getProperty("os.version") + "; " + System.getProperty("os.arch") + "; " + macAddressHashString, "Cookie Cadger, " + CookieCadgerUtils.version, "text/html", null);
+						String releasedVersion = CookieCadgerUtils.readUrl("https://www.cookiecadger.com/update/?update=" + CookieCadgerUtils.version + "; " + System.getProperty("os.name") + "; " + System.getProperty("os.version") + "; " + System.getProperty("os.arch") + "; " + macAddressHashString, "Cookie Cadger, " + CookieCadgerUtils.version, "text/html", null);
 						
 						if(releasedVersion.length() > 0 && releasedVersion.contains("Cookie Cadger")) // String has stuff in it? Display.
 						{
@@ -2401,11 +2471,48 @@ public class CookieCadgerFrame extends JFrame
         }
         catch(NullPointerException npe)
         {
-        	// Do nothing
+        	// No plugins directory; do nothing
         }
         catch(Exception e)
         {
         	e.printStackTrace();
+        }
+        
+        // All components loaded, start refresh timer if using remote DB
+        if(!dbEngine.equals("sqlite"))
+        {
+        	try
+         	{
+        		ChangeClientsList(false);
+        		
+		    	if(bUseSessionDetection)
+		    		ChangeSessionsList(false);
+        	}
+        	catch (Exception ex)
+        	{
+        		ex.printStackTrace();
+        	}
+			
+			// Refresh every X seconds
+	        Timer timer = new Timer( (1000 * (Integer)CookieCadgerUtils.programSettings.get("databaseRefreshRate")) , new ActionListener()
+			{
+				public void actionPerformed(ActionEvent evt)
+				{
+		        	try
+		        	{
+		        		ChangeClientsList(false);
+		        		
+				    	if(bUseSessionDetection)
+				    		ChangeSessionsList(false);
+		        	}
+		        	catch (Exception ex)
+		        	{
+		        		ex.printStackTrace();
+		        	}
+				}
+			});
+	        timer.setRepeats(false);
+	        timer.start();
         }
 	}
 	
@@ -2416,14 +2523,12 @@ public class CookieCadgerFrame extends JFrame
 		if(pathToTshark == null || pathToTshark.isEmpty()) // no program arg specified
 		{
 			// Get tshark location by checking likely Linux, Windows, and Mac paths
-			//								// Ubuntu/Debian	// Fedora/RedHat			// BackTrack 5 R3	// Windows 32-bit							//Windows 64-bit									//Mac OS X
-			String[] pathCheckStrings = {	"/usr/bin/tshark",	"/usr/local/bin/tshark",	"/usr/sbin/tshark",	"C:\\Program Files\\Wireshark\\tshark.exe",	"C:\\Program Files (x86)\\Wireshark\\tshark.exe",	"/Applications/Wireshark.app/Contents/Resources/bin/tshark" };
 			
-			for(String path : pathCheckStrings)
+			for(String path : CookieCadgerUtils.knownTsharkLocations)
 			{
 				if(new File(path).exists())
 				{
-					Console("tshark located at " + path, false);
+					Console("tshark located at " + path);
 					pathToTshark = path;
 					break;
 				}
@@ -2433,7 +2538,7 @@ public class CookieCadgerFrame extends JFrame
 		{
 			if(new File(pathToTshark).exists())
 			{
-				Console("tshark specified at " + pathToTshark, false);
+				Console("tshark specified at " + pathToTshark);
 			}
 			else
 			{
@@ -2448,7 +2553,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 		else
 		{
-			Console("Querying tshark for capture devices; tshark output follows:", false);
+			Console("Querying tshark for capture devices; tshark output follows:");
 
 			String line = "";
 			try {
@@ -2462,7 +2567,7 @@ public class CookieCadgerFrame extends JFrame
 				while ((line = br.readLine()) != null)
 				{
 					// Print every piece of output to the console
-					Console(line, false);
+					Console(line);
 
 					boolean isNumericStart = true;
 					try
@@ -2494,11 +2599,10 @@ public class CookieCadgerFrame extends JFrame
 					}
 				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			
-			Console("Capture device search completed with " + deviceName.size() + " devices found.", false);
+			Console("Capture device search completed with " + deviceName.size() + " devices found.");
 		}
 	}
 
@@ -2519,7 +2623,6 @@ public class CookieCadgerFrame extends JFrame
 			}
 			catch (Exception e)
 			{
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 				
 				bHaveImage = false;
@@ -2547,47 +2650,18 @@ public class CookieCadgerFrame extends JFrame
 		}
 		catch (SQLException e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
-	private void LoadPreferences()
-	{
-		// Retrieve the user preference node
-		if(prefs == null)
-		{
-			prefs = Preferences.userRoot().node(this.getClass().getName());
-		}
-		
-		setting_dbEngine = prefs.get("dbEngine", "sqlite");
-		setting_mysqlHost = prefs.get("dbEngine", "mysqlHost");
-		setting_mysqlUser = prefs.get("dbEngine", "mysqlUser");
-		setting_mysqlPassword = prefs.get("dbEngine", "mysqlPassword");
-		setting_mysqlDatabase = prefs.get("dbEngine", "mysqlDatabase");
-	}
-	
-	private void SavePreferences()
-	{
-		/*
-		private String setting_dbEngine = null;
-		private String setting_mysqlHost = null;
-		private String setting_mysqlUser = null;
-		private String setting_mysqlPassword = null;
-		private String setting_mysqlDatabase = null;
-		*/
-		
-	}
-	
-	private void Console(String text, boolean bAutoScroll)
+	private void Console(String text)
 	{
 		if(txtConsole.getText().isEmpty())
 			txtConsole.setText(text);
 		else
 			txtConsole.append("\n" + text);
 		
-		if(bAutoScroll)
-			txtConsole.setCaretPosition(txtConsole.getDocument().getLength());
+		txtConsole.setCaretPosition(txtConsole.getDocument().getLength());
 		
 		System.out.println(text);
 	}
@@ -2624,36 +2698,5 @@ public class CookieCadgerFrame extends JFrame
                 return (Component) componentMap.get(name);
         }
         else return null;
-	}
-	
-	public static String readUrl(String urlString, String userAgent, String accept, String cookies) throws Exception
-	{
-	    BufferedReader reader = null;
-	    try {
-	        URL url = new URL(urlString);
-	        URLConnection urlConn = url.openConnection();
-	        
-	        if(cookies != null && !cookies.isEmpty())
-	        	urlConn.setRequestProperty("Cookie", cookies);
-	        
-	        urlConn.setRequestProperty("User-Agent", userAgent);
-	        urlConn.setRequestProperty("Accept", accept + ", " + Integer.toString(localRandomization));
-	        
-	        reader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
-	        StringBuffer buffer = new StringBuffer();
-	        int read;
-	        char[] chars = new char[1024];
-	        while ((read = reader.read(chars)) != -1)
-	            buffer.append(chars, 0, read); 
-
-	        return buffer.toString();
-	    } catch (FileNotFoundException ex) {
-	    	// Nothing
-	    } finally {
-	        if (reader != null)
-	            reader.close();
-	    }
-	    
-	    return "";
 	}
 }

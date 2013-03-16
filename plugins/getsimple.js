@@ -1,4 +1,4 @@
-importPackage(Packages.cookie.cadger.mattslifebytes.com);
+importPackage(Packages.com.cookiecadger);
 
 var description;
 var profileImageUrl;

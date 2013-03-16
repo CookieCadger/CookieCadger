@@ -1,4 +1,4 @@
-importPackage(Packages.cookie.cadger.mattslifebytes.com);
+importPackage(Packages.com.cookiecadger);
 
 var description;
 var profileImageUrl;
@@ -15,7 +15,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 	// See also: https://github.com/JTracker/jissues/blob/master/libraries/joomla/session/session.php
 	if(cookies.indexOf("jpanesliders_") != -1)
 	{
-		var pageContent = Packages.cookie.cadger.mattslifebytes.com.CookieCadgerInterface.readUrl("http://" + host + uri, userAgent, accept, cookies);
+		var pageContent = Packages.com.cookiecadger.CookieCadgerUtils.readUrl("http://" + host + uri, userAgent, accept, cookies);
 		
 		if(pageContent.indexOf("Joomla!") != -1){
 			if(uri.indexOf("administrator") != -1){

@@ -1,4 +1,4 @@
-importPackage(Packages.cookie.cadger.mattslifebytes.com);
+importPackage(Packages.com.cookiecadger);
 
 var description;
 var profileImageUrl;
@@ -12,7 +12,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 
 	if(cookies.indexOf("phpbb3_") != -1)
 	{
-		var pageContent = Packages.cookie.cadger.mattslifebytes.com.CookieCadgerInterface.readUrl("http://" + host + uri, userAgent, accept, cookies);
+		var pageContent = Packages.com.cookiecadger.CookieCadgerUtils.readUrl("http://" + host + uri, userAgent, accept, cookies);
 
 		if(pageContent.indexOf('Logout [ ') != -1)
 		{

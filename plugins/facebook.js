@@ -1,4 +1,4 @@
-importPackage(Packages.cookie.cadger.mattslifebytes.com);
+importPackage(Packages.com.cookiecadger);
 
 var description;
 var profileImageUrl;
@@ -20,7 +20,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 			facebookUserID = facebookUserID.substring(0, facebookUserID.indexOf(";"));
 		}
 
-		var apiQueryResult = Packages.cookie.cadger.mattslifebytes.com.CookieCadgerInterface.readUrl("https://graph.facebook.com/" + facebookUserID, userAgent, accept, cookies);
+		var apiQueryResult = Packages.com.cookiecadger.CookieCadgerUtils.readUrl("https://graph.facebook.com/" + facebookUserID, userAgent, accept, cookies);
 		var facebookProfile = JSON.parse(apiQueryResult);
 
 		description = "<html><font size=5>Facebook</font><br>" + facebookProfile.name;

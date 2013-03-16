@@ -1,4 +1,4 @@
-importPackage(Packages.cookie.cadger.mattslifebytes.com);
+importPackage(Packages.com.cookiecadger);
 
 var description;
 var profileImageUrl;
@@ -15,7 +15,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 	{
 		try {
 			// okcupid doesn't have API support so, getting some information will depend on the page we are on
-			var pageContent = Packages.cookie.cadger.mattslifebytes.com.CookieCadgerInterface.readUrl("http://" + host + uri, userAgent, accept, cookies);
+			var pageContent = Packages.com.cookiecadger.CookieCadgerUtils.readUrl("http://" + host + uri, userAgent, accept, cookies);
 
 			// some data is handily provide as javascript variables on what seems like is every page...
 			var currentUserID = pageContent.substring(pageContent.indexOf("CURRENTUSERID = \"") + 17, pageContent.length());

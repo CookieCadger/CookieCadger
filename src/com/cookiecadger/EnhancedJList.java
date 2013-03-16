@@ -52,7 +52,6 @@ public class EnhancedJList extends JList
         			// If point inside rectangle
         			if(mousePosition.x >= cellRect.getMinX() && mousePosition.x < cellRect.getMaxX() && mousePosition.y >= cellRect.getMinY() && mousePosition.y < cellRect.getMaxY())
         			{
-        				//theList.setToolTipText(createToolTip(theList, index));
         				theList.setToolTipText(((EnhancedJListItem)model.getElementAt(index)).getDescription());
         				return;
         			}
