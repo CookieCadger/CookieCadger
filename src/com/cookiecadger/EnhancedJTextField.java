@@ -19,14 +19,12 @@ public class EnhancedJTextField extends JTextField
 		if(getText().isEmpty() && getPlaceholder() != null)
 		{
 			Graphics2D g2 = (Graphics2D)g.create();
-			//g2.setBackground(Color.gray);
-			//g2.setFont(getFont().deriveFont(Font.ITALIC));
 			setForeground(Color.GRAY);
 			
 			Font font1 = new Font("SansSerif", Font.BOLD, 10);
 			g2.setFont(font1);
 			
-			g2.drawString(getPlaceholder(), 5, 10); //figure out x, y from font's FontMetrics and size of component.
+			g2.drawString(getPlaceholder(), 5, 10);
 			g2.dispose();
 		}
 		else

@@ -156,7 +156,7 @@ public class CookieCadgerFrame extends JFrame
 	private RequestInterceptor requestIntercept;
 	
 
-	private void StartCapture(int ethDevNumber, String pcapFile) throws IOException
+	private void startCapture(int ethDevNumber, String pcapFile) throws IOException
 	{
 		ProcessBuilder pb = null;
 		Process proc = null;
@@ -168,7 +168,7 @@ public class CookieCadgerFrame extends JFrame
 		
 		if(pcapFile.isEmpty())
 		{			
-			Console("Opening '" + deviceName.get(ethDevNumber) + "' for traffic capture.");
+			consoleMessage("Opening '" + deviceName.get(ethDevNumber) + "' for traffic capture.");
 			pb = new ProcessBuilder(new String[] { pathToTshark, "-i", deviceName.get(ethDevNumber), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
 			pb.redirectErrorStream(true);
 			deviceCaptureProcess.set(ethDevNumber, pb.start());
@@ -177,7 +177,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 		else
 		{
-			Console("Opening '" + pcapFile + "' for traffic capture.");
+			consoleMessage("Opening '" + pcapFile + "' for traffic capture.");
 			pb = new ProcessBuilder(new String[] { pathToTshark, "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
 			pb.redirectErrorStream(true);
 			proc = pb.start();
@@ -245,7 +245,7 @@ public class CookieCadgerFrame extends JFrame
 						
 						// When Cookie Cadger creates requests it appends a randomization
 						// to the Accept header. Check for it and ignore if matched.
-						if(accept.contains(", " + Integer.toString(CookieCadgerUtils.GetLocalRandomization())))
+						if(accept.contains(", " + Integer.toString(CookieCadgerUtils.getLocalRandomization())))
 						{
 							continue;
 						}
@@ -253,20 +253,20 @@ public class CookieCadgerFrame extends JFrame
 						if(!requestUri.isEmpty())
 						{
 							bUsefulData = true;
-							clientID = HandleClient(macAddress);
+							clientID = handleClient(macAddress);
 							
-							ProcessRequest(macAddress, ipv4Address, ipv6Address, requestHost, accept, acceptEncoding, requestUri, userAgent, refererUri, cookieData, authorization, authBasic);
+							processRequest(macAddress, ipv4Address, ipv6Address, requestHost, accept, acceptEncoding, requestUri, userAgent, refererUri, cookieData, authorization, authBasic);
 						}
 						else if(!netbiosCommand.isEmpty() && netbiosCommand.equals("0x0f") && !netbiosName.isEmpty()) // 0x0f = host announcement broadcast
 						{
 							bUsefulData = true;
-							clientID = HandleClient(macAddress);
+							clientID = handleClient(macAddress);
 							
 							dbInstance.setStringValue("clients", "netbios_hostname", netbiosName, "mac_address", macAddress);
 						
 							// If only show hosts with GET requests is unchecked, always show. If checked and total for this MAC > 0, show as well. Then check to see if filtering is enabled
 							if(!clientsListModel.contains(macAddress) && 
-									!((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) > 0 ) &&
+									!((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) > 0 ) &&
 									(txtClientSearch.getText().isEmpty() || (txtClientSearch.getText().length() > 0 && macAddress.contains(txtClientSearch.getText())))
 									)
 							{
@@ -284,14 +284,14 @@ public class CookieCadgerFrame extends JFrame
 								if(!mdnsNameStr.contains(".arpa") && !mdnsNameStr.contains("_tcp") && !mdnsNameStr.contains("_udp") && !mdnsNameStr.contains("<Root>"))
 								{
 									bUsefulData = true;
-									clientID = HandleClient(macAddress);
+									clientID = handleClient(macAddress);
 									
 									mdnsNameStr = mdnsNameStr.replace(".local", "");
 
 									dbInstance.setStringValue("clients", "mdns_hostname", mdnsNameStr, "mac_address", macAddress);
 									
 									// If only show hosts with GET requests is unchecked, always show. If checked and total for this MAC > 0, show as well
-									if(!clientsListModel.contains(macAddress) && !((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) == 1 ) &&
+									if(!clientsListModel.contains(macAddress) && !((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) == 1 ) &&
 											(txtClientSearch.getText().isEmpty() || (txtClientSearch.getText().length() > 0 && macAddress.contains(txtClientSearch.getText())))
 											)
 									{
@@ -312,7 +312,7 @@ public class CookieCadgerFrame extends JFrame
 						}
 						
 						// And update the informational display
-						UpdateDescriptionForMac(macAddress);
+						updateDescriptionForMac(macAddress);
 					}
 				}
 				else
@@ -350,41 +350,41 @@ public class CookieCadgerFrame extends JFrame
 		}
 		
 		if(pcapFile.isEmpty())
-			StopCapture(ethDevNumber); // Update UI and clean up
+			stopCapture(ethDevNumber); // Update UI and clean up
 		
 		Date capEnd = new Date();
 		int runTimeInSeconds = (int) ((capEnd.getTime() - capStart.getTime()) / 1000);
 		
 		if(pcapFile.isEmpty() && runTimeInSeconds <= 20)
 		{
-			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================");
-			Console(deviceName.get(ethDevNumber) + ": " + "Start of diagnostic information for interface '" + deviceName.get(ethDevNumber) + "'");
-			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================");
+			consoleMessage(deviceName.get(ethDevNumber) + ": " + "============================================================================");
+			consoleMessage(deviceName.get(ethDevNumber) + ": " + "Start of diagnostic information for interface '" + deviceName.get(ethDevNumber) + "'");
+			consoleMessage(deviceName.get(ethDevNumber) + ": " + "============================================================================");
 			
 			for (String output : nonTabbedOutput)
 			{
-				Console(deviceName.get(ethDevNumber) + ": " + output);				
+				consoleMessage(deviceName.get(ethDevNumber) + ": " + output);				
 			}
 			
-			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================");
-			Console(deviceName.get(ethDevNumber) + ": " + "Potential error detected! Capture stopped / died in " + Integer.toString(runTimeInSeconds) + " seconds.");
-			Console(deviceName.get(ethDevNumber) + ": " + "All messages from the 'tshark' program have been printed above to assist you in solving any errors.");
-			Console(deviceName.get(ethDevNumber) + ": " + "============================================================================");
+			consoleMessage(deviceName.get(ethDevNumber) + ": " + "============================================================================");
+			consoleMessage(deviceName.get(ethDevNumber) + ": " + "Potential error detected! Capture stopped / died in " + Integer.toString(runTimeInSeconds) + " seconds.");
+			consoleMessage(deviceName.get(ethDevNumber) + ": " + "All messages from the 'tshark' program have been printed above to assist you in solving any errors.");
+			consoleMessage(deviceName.get(ethDevNumber) + ": " + "============================================================================");
 		}
 		else
 		{
 			if(pcapFile.isEmpty())
-				Console("'" + deviceName.get(ethDevNumber) + "' has been closed and is finished with traffic capture. Capture duration: " + Integer.toString(runTimeInSeconds) + " seconds.");
+				consoleMessage("'" + deviceName.get(ethDevNumber) + "' has been closed and is finished with traffic capture. Capture duration: " + Integer.toString(runTimeInSeconds) + " seconds.");
 			else
-				Console("'" + pcapFile + "' has finished processing. Processing duration: " + Integer.toString(runTimeInSeconds) + " seconds.");
+				consoleMessage("'" + pcapFile + "' has finished processing. Processing duration: " + Integer.toString(runTimeInSeconds) + " seconds.");
 		}
 	}
 	
-	private void StopCapture(int ethDevNumber)
+	private void stopCapture(int ethDevNumber)
 	{
 		interfacesListModel.removeElementAt(ethDevNumber);
 		interfacesListModel.insertElementAt(deviceName.get(ethDevNumber) + " [" + deviceDescription.get(ethDevNumber) + "]", ethDevNumber);
-		((JComboBox<?>)GetComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
+		((JComboBox<?>)getComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
 
 		if (deviceCaptureProcess.get(ethDevNumber) != null)
 		{
@@ -393,29 +393,33 @@ public class CookieCadgerFrame extends JFrame
 		
 		bCapturing.set(ethDevNumber, false);
 		
-		SetCaptureButtonText();
+		setCaptureButtonText();
 	}
 	
-	private void PrepCapture(int ethDevNumber)
+	private void prepCapture(int ethDevNumber)
 	{
 		interfacesListModel.removeElementAt(ethDevNumber);
 		interfacesListModel.insertElementAt(deviceName.get(ethDevNumber) + " [" + deviceDescription.get(ethDevNumber) + "] (CURRENTLY CAPTURING)", ethDevNumber);
-		((JComboBox<?>)GetComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
+		((JComboBox<?>)getComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
 		
 		bCapturing.set(ethDevNumber, true);
 		
-		SetCaptureButtonText();
+		setCaptureButtonText();
 	}
 	
-	private void ClearGUI()
+	private void clearGUI()
 	{
 		requestsListModel.clear();
 		domainsListModel.clear();
 		clientsListModel.clear();
 		sessionsListModel.clear();
+		
+		txtClientSearch.setText("");
+		txtDomainSearch.setText("");
+		txtRequestSearch.setText("");
 	}
 	
-	private boolean ResetData()
+	private boolean resetData()
 	{
 		// If sqlite, and this user session is not empty set
 		if(dbEngine.equals("sqlite"))
@@ -464,30 +468,30 @@ public class CookieCadgerFrame extends JFrame
 		return true;
 	}
 	
-	private void SetCaptureButtonText()
+	private void setCaptureButtonText()
 	{
-		int selection = ((JComboBox<?>)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
+		int selection = ((JComboBox<?>)getComponentByName("interfaceListComboBox")).getSelectedIndex();
 		if(selection == -1)
 		{
-			((JButton)GetComponentByName("btnMonitorOnSelected")).setEnabled(false);
-			((JButton)GetComponentByName("btnMonitorOnSelected")).setText("Select An Interface");
+			((JButton)getComponentByName("btnMonitorOnSelected")).setEnabled(false);
+			((JButton)getComponentByName("btnMonitorOnSelected")).setText("Select An Interface");
 		}
 		else
 		{
-			((JButton)GetComponentByName("btnMonitorOnSelected")).setEnabled(true);
+			((JButton)getComponentByName("btnMonitorOnSelected")).setEnabled(true);
 			
 			if(bCapturing.get(selection))
 			{
-				((JButton)GetComponentByName("btnMonitorOnSelected")).setText("Stop Capture on " + deviceName.get(selection));
+				((JButton)getComponentByName("btnMonitorOnSelected")).setText("Stop Capture on " + deviceName.get(selection));
 			}
 			else
 			{
-				((JButton)GetComponentByName("btnMonitorOnSelected")).setText("Start Capture on " + deviceName.get(selection));
+				((JButton)getComponentByName("btnMonitorOnSelected")).setText("Start Capture on " + deviceName.get(selection));
 			}
 		}
 	}
 	
-	private void ProcessRequest(final String macAddress, final String ipv4Address, final String ipv6Address, final String requestHost, final String accept, final String acceptEncoding, final String requestUri, final String userAgent, final String refererUri, final String cookieData, final String authorization, final String authBasic)
+	private void processRequest(final String macAddress, final String ipv4Address, final String ipv6Address, final String requestHost, final String accept, final String acceptEncoding, final String requestUri, final String userAgent, final String refererUri, final String cookieData, final String authorization, final String authBasic)
 	{
 		int clientID = -1;
 		int domainID = -1;
@@ -552,7 +556,7 @@ public class CookieCadgerFrame extends JFrame
 			
 			// Generate hover tooltip text and save it back to the database.
 			// This allows us to only have to do this heavy processing once.
-			String description = GenerateDescriptionForRequest(reqID, true, true);
+			String description = generateDescriptionForRequest(reqID, true, true);
 			dbInstance.setStringValue("requests", "description", description, "id", Integer.toString(reqID));
 			
 			// Update the requests list if necessary
@@ -580,8 +584,7 @@ public class CookieCadgerFrame extends JFrame
 					requestDisplay = requestUri;
 				}
 				
-				EnhancedJListItem requestItem = new EnhancedJListItem(reqID, dateString + ": " + requestDisplay, null);
-				requestItem.setDescription(description);
+				EnhancedJListItem requestItem = new EnhancedJListItem(reqID, dateString + ": " + requestDisplay, description);
 				requestsListModel.addElement(requestItem);
 			}
 		}
@@ -591,7 +594,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 		
 		try {
-			if(!clientsListModel.contains(macAddress) && !((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) == 1 ) &&
+			if(!clientsListModel.contains(macAddress) && !((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) == 1 ) &&
 					(txtClientSearch.getText().isEmpty() || (txtClientSearch.getText().length() > 0 && macAddress.contains(txtClientSearch.getText())))
 					)
 			{
@@ -602,7 +605,7 @@ public class CookieCadgerFrame extends JFrame
 			e.printStackTrace();
 		}
 
-		UpdateDescriptionForMac(macAddress);
+		updateDescriptionForMac(macAddress);
 		requestID = reqID; // Set the 'final' request ID to pass into the new handler Thread
 		
 		if(!bUseSessionDetection) // And that's as far as we'll go
@@ -687,12 +690,12 @@ public class CookieCadgerFrame extends JFrame
 					    		if(sessionUri != null && sessionUri.equals("null"))
 					    			profileImageUrl = null;
 
-				    			CreateSession(requestID, uniqueID, description, profileImageUrl, sessionUri);
+				    			createBrowserSession(requestID, uniqueID, description, profileImageUrl, sessionUri);
 
 				    			// Session created, check to see if we should auto-load it as well.
-				    			if(((JCheckBox)GetComponentByName("chckbxAutomaticallyLoadSessions")).isSelected())
+				    			if(((JCheckBox)getComponentByName("chckbxAutomaticallyLoadSessions")).isSelected())
 				    			{						    							
-				    				LoadRequestIntoBrowser(requestHost, requestUri, userAgent, refererUri, cookieData, authorization);
+				    				loadRequestIntoBrowser(requestHost, requestUri, userAgent, refererUri, cookieData, authorization);
 				    			}
 					    		
 					    		// A match has been made against this request. Exit to prevent other
@@ -712,7 +715,7 @@ public class CookieCadgerFrame extends JFrame
         analyzeRequestWorker.execute();
 	}
 	
-	private int HandleClient(String macAddress)
+	private int handleClient(String macAddress)
 	{
 		try
 		{
@@ -733,7 +736,7 @@ public class CookieCadgerFrame extends JFrame
 		return -1;
 	}
 	
-	private void ChangeClientsList(boolean bClearFirst)
+	private void changeClientsList(boolean bClearFirst)
 	{
 		int clients = 0;
 		final int clientCount;
@@ -774,9 +777,9 @@ public class CookieCadgerFrame extends JFrame
         		
         		try
         		{
-        			boolean bOnlyHostsWithData = ((JCheckBox)GetComponentByName("chckbxOnlyShowHosts")).isSelected();
+        			boolean bOnlyHostsWithData = ((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected();
 
-        			String[] macAddresses = dbInstance.getMacs(bOnlyHostsWithData, ((EnhancedJTextField)GetComponentByName("txtClientSearch")).getText());
+        			String[] macAddresses = dbInstance.getMacs(bOnlyHostsWithData, ((EnhancedJTextField)getComponentByName("txtClientSearch")).getText());
         			for (String s : macAddresses)
         			{
         				// Update the GUI with progress
@@ -800,7 +803,7 @@ public class CookieCadgerFrame extends JFrame
         			    	clientsListModel.addElement(new EnhancedJListItem(clientID, s, null));
         			    }
 
-        			    UpdateDescriptionForMac(s);
+        			    updateDescriptionForMac(s);
         			}
         		}
         		catch (SQLException e)
@@ -831,7 +834,7 @@ public class CookieCadgerFrame extends JFrame
 		changeClientsListThread.start();
 	}
 	
-	private void ChangeDomainsList(String macAddress)
+	private void changeDomainsList(String macAddress)
 	{
 		boolean bPreviousSelection = false;
 		String previousSelection = null;
@@ -848,7 +851,7 @@ public class CookieCadgerFrame extends JFrame
 		domainsListModel.addElement(new EnhancedJListItem(-1, "[ All Domains ]", null));
 		try
 		{
-			for (String s : dbInstance.getDomains(macAddress, ((EnhancedJTextField)GetComponentByName("txtDomainSearch")).getText()))
+			for (String s : dbInstance.getDomains(macAddress, ((EnhancedJTextField)getComponentByName("txtDomainSearch")).getText()))
 			{
 				int domainID = dbInstance.getIntegerValue("domains", "id", "name", s);
 				domainsListModel.addElement(new EnhancedJListItem(domainID, s, null));
@@ -869,7 +872,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 	}
 	
-	private void ChangeRequestsList(String macAddress, String uriHost)
+	private void changeRequestsList(String macAddress, String uriHost)
 	{
 		boolean bPreviousSelection = false;
 		String previousSelection = null;
@@ -890,7 +893,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 		
 		try {
-			ArrayList<ArrayList> requests = dbInstance.getRequests(macAddress, uriHost, ((EnhancedJTextField)GetComponentByName("txtRequestSearch")).getText());
+			ArrayList<ArrayList> requests = dbInstance.getRequests(macAddress, uriHost, ((EnhancedJTextField)getComponentByName("txtRequestSearch")).getText());
 			
 			ArrayList<String> ids = requests.get(0);
 			ArrayList<String> timerecordeds = requests.get(1);
@@ -928,8 +931,7 @@ public class CookieCadgerFrame extends JFrame
 					uri = domain + uri;
 				}
 
-				EnhancedJListItem requestItem = new EnhancedJListItem(requestID, dateString + ": " + uri, null);
-				requestItem.setDescription(description);
+				EnhancedJListItem requestItem = new EnhancedJListItem(requestID, dateString + ": " + uri, description);
 				requestsListModel.addElement(requestItem);
 			}
 		}
@@ -949,7 +951,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 	}
 
-	private void ChangeSessionsList(boolean bClearFirst)
+	private void changeSessionsList(boolean bClearFirst)
 	{
 		final boolean bClearListFirst;
 		bClearListFirst = bClearFirst;
@@ -1006,16 +1008,16 @@ public class CookieCadgerFrame extends JFrame
 		changeSessionsListThread.start();
 	}
 	
-	private void UpdateDescriptionForMac(String macAddress)
+	private void updateDescriptionForMac(String macAddress)
 	{
 		if(clientsListModel.contains(macAddress))
 		{
 			int location = clientsListModel.indexOf(macAddress);
-			((EnhancedJListItem)clientsListModel.getElementAt(location)).setDescription(GenerateDescriptionForMac(macAddress, true));
+			((EnhancedJListItem)clientsListModel.getElementAt(location)).setDescription(generateDescriptionForMac(macAddress, true));
 		}
 	}
 	
-	private String GenerateDescriptionForMac(String macAddress, boolean bUseHTML)
+	private String generateDescriptionForMac(String macAddress, boolean bUseHTML)
 	{
 		String htmlOpen = "";
 		String boldOpen = "";
@@ -1093,7 +1095,7 @@ public class CookieCadgerFrame extends JFrame
 		return null;
 	}
 	
-	private String GenerateDescriptionForRequest(int requestID, boolean bUseHTML, boolean bTruncate)
+	private String generateDescriptionForRequest(int requestID, boolean bUseHTML, boolean bTruncate)
 	{
 		String htmlOpen = "";
 		String boldOpen = "";
@@ -1177,8 +1179,7 @@ public class CookieCadgerFrame extends JFrame
 		return null;
 	}
 	
-	// Now we're at the good part.
-	private void LoadRequestIntoBrowser(String domain, String uri, String useragent, String referer, String cookies, String authorization)
+	private void loadRequestIntoBrowser(String domain, String uri, String useragent, String referer, String cookies, String authorization)
 	{
 		consoleScrollPane.setVisible(false);
 		
@@ -1190,7 +1191,7 @@ public class CookieCadgerFrame extends JFrame
 			server = new ProxyServer(7878);
 
 	        requestIntercept = new RequestInterceptor();
-	        requestIntercept.setRandomization(Integer.toString(CookieCadgerUtils.GetLocalRandomization()));
+	        requestIntercept.setRandomization(Integer.toString(CookieCadgerUtils.getLocalRandomization()));
 	        
 	        try {
 				server.start();
@@ -1264,7 +1265,7 @@ public class CookieCadgerFrame extends JFrame
         consoleScrollPane.setVisible(true);
 	}
 	
-	private void PrepareToCloseApplication()
+	private void prepareToCloseApplication()
 	{
 		if(dbEngine.equals("sqlite"))
 		{
@@ -1272,7 +1273,7 @@ public class CookieCadgerFrame extends JFrame
 			try
 			{
 				// Reset DB, which will ask user to save
-				boolean bResetCommit = ResetData();
+				boolean bResetCommit = resetData();
 				
 				if(!bResetCommit)
 					return;
@@ -1316,7 +1317,7 @@ public class CookieCadgerFrame extends JFrame
 		System.exit(0);
 	}
 	
-	private void HandleProgramArguments(String[] args)
+	private void handleProgramArguments(String[] args)
 	{
 		int i = 0;
 		String arg;
@@ -1436,7 +1437,7 @@ public class CookieCadgerFrame extends JFrame
 	
 	public CookieCadgerFrame(String args[]) throws Exception
 	{
-		HandleProgramArguments(args);
+		handleProgramArguments(args);
 		
 		setResizable(false);
 		addWindowListener(new WindowAdapter() {
@@ -1444,11 +1445,11 @@ public class CookieCadgerFrame extends JFrame
 			public void windowClosing(WindowEvent e)
 			{
 				super.windowClosing(e);
-				PrepareToCloseApplication();
+				prepareToCloseApplication();
 			}
 		});
 		
-		CookieCadgerUtils.LoadPreferences();
+		CookieCadgerUtils.loadApplicationPreferences();
 		dbEngine = (String)CookieCadgerUtils.programSettings.get("dbEngine");
 		bUsingExternalDatabase = !dbEngine.equals("sqlite");
 		
@@ -1459,7 +1460,10 @@ public class CookieCadgerFrame extends JFrame
 		catch (Exception ex)
 		{
 			ex.printStackTrace();
-			JOptionPane.showMessageDialog(null, "Database failed to initalize. Please check your settings.");
+			JOptionPane.showMessageDialog(null,
+					"Cookie Cadger will not operate correctly with the current database settings. Expect errors.\nPlease check your settings and ensure the database server is working.\nThe error was:\n\n" + ex.getMessage(),
+					"Database Failed to Initalize!",
+					JOptionPane.ERROR_MESSAGE);
 		}
 		
 		setTitle("Cookie Cadger");
@@ -1632,7 +1636,7 @@ public class CookieCadgerFrame extends JFrame
 									uri = resultMap.get("uri");
 								}
 
-								LoadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
+								loadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
 							} catch (Exception e)
 							{
 								e.printStackTrace();
@@ -1783,7 +1787,7 @@ public class CookieCadgerFrame extends JFrame
 				{
 					JList<?> list = (JList<?>)e.getSource();
 					String item = ((EnhancedJListItem)list.getSelectedValue()).toString();
-					ChangeDomainsList(item);
+					changeDomainsList(item);
 				}
 			}
 		});
@@ -1815,7 +1819,7 @@ public class CookieCadgerFrame extends JFrame
 					JList<?> list = (JList<?>)e.getSource();
 					String item = ((EnhancedJListItem)list.getSelectedValue()).toString();
 					String macAddress = ((EnhancedJListItem)clientsList.getSelectedValue()).toString();
-					ChangeRequestsList(macAddress, item);
+					changeRequestsList(macAddress, item);
 				}
 			}
 		});
@@ -1847,7 +1851,7 @@ public class CookieCadgerFrame extends JFrame
 					Toolkit toolkit = Toolkit.getDefaultToolkit();
 					Clipboard clipboard = toolkit.getSystemClipboard();
 					String macAddress = ((EnhancedJListItem)clientsList.getSelectedValue()).toString();
-					StringSelection strSel = new StringSelection(GenerateDescriptionForMac(macAddress, false));
+					StringSelection strSel = new StringSelection(generateDescriptionForMac(macAddress, false));
 					clipboard.setContents(strSel, null);
 				}
 			}
@@ -1919,7 +1923,7 @@ public class CookieCadgerFrame extends JFrame
 					Toolkit toolkit = Toolkit.getDefaultToolkit();
 					Clipboard clipboard = toolkit.getSystemClipboard();
 					int request = ((EnhancedJListItem)requestsList.getSelectedValue()).getID();
-					StringSelection strSel = new StringSelection(GenerateDescriptionForRequest(request, false, false));				
+					StringSelection strSel = new StringSelection(generateDescriptionForRequest(request, false, false));				
 					clipboard.setContents(strSel, null);
 				}
 			}
@@ -2008,11 +2012,11 @@ public class CookieCadgerFrame extends JFrame
 		mntmStartNewSession.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e)
 			{
-				boolean resetCommit = ResetData();
+				boolean resetCommit = resetData();
 				
 				if(resetCommit)
 				{
-					ClearGUI();
+					clearGUI();
 					try {
 						dbInstance.initTables();
 					} catch (SQLException e1) {
@@ -2056,7 +2060,7 @@ public class CookieCadgerFrame extends JFrame
 								loadingRequestProgressBar.setString("Processing capture file, please wait...");
 								loadingRequestProgressBar.setVisible(true);
 
-								StartCapture(-1, pcapFile);
+								startCapture(-1, pcapFile);
 								
 				                loadingRequestProgressBar.setVisible(false);
 				                consoleScrollPane.setVisible(true);
@@ -2086,11 +2090,11 @@ public class CookieCadgerFrame extends JFrame
 			{
 				public void actionPerformed(ActionEvent arg0)
 				{
-					boolean resetCommit = ResetData();
+					boolean resetCommit = resetData();
 					
 					if(resetCommit)
 					{
-						ClearGUI();
+						clearGUI();
 						
 						try {
 							dbInstance.initTables();
@@ -2100,10 +2104,10 @@ public class CookieCadgerFrame extends JFrame
 						
 						dbInstance.openDatabase();
 				        
-				    	ChangeClientsList(true);
+				    	changeClientsList(true);
 				    	
 				    	if(bUseSessionDetection)
-				    		ChangeSessionsList(true);
+				    		changeSessionsList(true);
 					}
 				}
 			});
@@ -2111,7 +2115,7 @@ public class CookieCadgerFrame extends JFrame
 
 		mntmExit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				PrepareToCloseApplication();
+				prepareToCloseApplication();
 			}
 		});
 
@@ -2127,7 +2131,7 @@ public class CookieCadgerFrame extends JFrame
 					Toolkit toolkit = Toolkit.getDefaultToolkit();
 					Clipboard clipboard = toolkit.getSystemClipboard();				
 					int request = ((EnhancedJListItem)requestsList.getSelectedValue()).getID();
-					StringSelection strSel = new StringSelection(GenerateDescriptionForRequest(request, false, false));
+					StringSelection strSel = new StringSelection(generateDescriptionForRequest(request, false, false));
 					clipboard.setContents(strSel, null);
 				}
 			}
@@ -2141,7 +2145,7 @@ public class CookieCadgerFrame extends JFrame
 				for (int i = 0; i < requestsListModel.getSize(); i++)
 				{
 					int request = ((EnhancedJListItem)requestsListModel.getElementAt(i)).getID();
-					allRequests = allRequests + GenerateDescriptionForRequest(request, false, false);
+					allRequests = allRequests + generateDescriptionForRequest(request, false, false);
 					
 					if( i < requestsListModel.getSize() - 1)
 						allRequests = allRequests + "\r\n\r\n---\r\n\r\n";
@@ -2158,20 +2162,20 @@ public class CookieCadgerFrame extends JFrame
 		mntmAbout.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e)
 			{
-				CookieCadgerUtils.DisplayAboutWindow();
+				CookieCadgerUtils.displayAboutWindow();
 			}
 		});
 		
 		// Listen for changes in the client filter textbox
 		txtClientSearch.getDocument().addDocumentListener(new DocumentListener() {
 		  public void changedUpdate(DocumentEvent e) {
-			  ChangeClientsList(true);
+			  changeClientsList(true);
 		  }
 		  public void removeUpdate(DocumentEvent e) {
-			  ChangeClientsList(true);
+			  changeClientsList(true);
 		  }
 		  public void insertUpdate(DocumentEvent e) {
-			  ChangeClientsList(true);
+			  changeClientsList(true);
 		  }
 		});
 		
@@ -2192,7 +2196,7 @@ public class CookieCadgerFrame extends JFrame
 				if(!clientsList.getValueIsAdjusting() && !clientsList.isSelectionEmpty())
 				{
 					String item = ((EnhancedJListItem)clientsList.getSelectedValue()).toString();
-					ChangeDomainsList(item);
+					changeDomainsList(item);
 				}
 		  }
 		});
@@ -2216,7 +2220,7 @@ public class CookieCadgerFrame extends JFrame
 				{
 					String client = ((EnhancedJListItem)clientsList.getSelectedValue()).toString();
 					String domain = ((EnhancedJListItem)domainsList.getSelectedValue()).toString();
-					ChangeRequestsList(client, domain);
+					changeRequestsList(client, domain);
 				}
 		  }
 		});
@@ -2250,7 +2254,7 @@ public class CookieCadgerFrame extends JFrame
 								String authorization = resultMap.get("authorization");
 								String cookies = resultMap.get("cookies");
 								
-								LoadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
+								loadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
 							} catch (SQLException e) {
 								e.printStackTrace();
 							}
@@ -2290,7 +2294,7 @@ public class CookieCadgerFrame extends JFrame
 								String authorization = resultMap.get("authorization");
 								String cookies = resultMap.get("cookies");
 								
-								LoadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
+								loadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
 							} catch (SQLException e) {
 								e.printStackTrace();
 							}
@@ -2307,7 +2311,7 @@ public class CookieCadgerFrame extends JFrame
 		interfaceListComboBox.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e)
 			{
-				SetCaptureButtonText();
+				setCaptureButtonText();
 			}
 		});
 
@@ -2315,7 +2319,7 @@ public class CookieCadgerFrame extends JFrame
 		btnMonitorOnSelected.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e)
 			{
-				int selectedInterface = ((JComboBox<?>)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
+				int selectedInterface = ((JComboBox<?>)getComponentByName("interfaceListComboBox")).getSelectedIndex();
 				if(selectedInterface == -1)
 					return;
 					
@@ -2323,19 +2327,19 @@ public class CookieCadgerFrame extends JFrame
 							
 				if(bInterfaceIsCapturing)
 				{
-					StopCapture(selectedInterface);
+					stopCapture(selectedInterface);
 				}
 				else
 				{
-					PrepCapture(selectedInterface);
+					prepCapture(selectedInterface);
 					
 			    	SwingWorker<?, ?> captureWorker = new SwingWorker<Object, Object>() {            
 			        	@Override
 			            public Object doInBackground()
 			        	{
 							try {
-								int selectedInterface = ((JComboBox<?>)GetComponentByName("interfaceListComboBox")).getSelectedIndex();
-								StartCapture(selectedInterface, "");
+								int selectedInterface = ((JComboBox<?>)getComponentByName("interfaceListComboBox")).getSelectedIndex();
+								startCapture(selectedInterface, "");
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
@@ -2355,18 +2359,18 @@ public class CookieCadgerFrame extends JFrame
 				requestsListModel.clear();
 				
 				// Status toggled, re-create the mac list
-				ChangeClientsList(true);
+				changeClientsList(true);
 			}
 		});
 		
 		// Associate all components with the HashMap
-		componentMap = CreateComponentMap(contentPane);
+		componentMap = createComponentMap(contentPane);
 				
 		// Get capture devices
-		InitializeDevices();
+		initializeDeviceList();
 		
 		// Name and license
-		Console("\n\nCookie Cadger (v"+ CookieCadgerUtils.version +")\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the terms of the FreeBSD license.\n");
+		consoleMessage("\n\nCookie Cadger (v"+ CookieCadgerUtils.version +")\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the terms of the FreeBSD license.\n");
 		
 		// Populate the ComboBox	
 		for (int i = 0; i < deviceName.size(); i++)
@@ -2408,7 +2412,7 @@ public class CookieCadgerFrame extends JFrame
 	            public Object doInBackground()
 	        	{
 	        		try {
-	        			JLabel lblSoftwareUpdateAvailable = ((JLabel)GetComponentByName("lblSoftwareUpdateAvailable"));
+	        			JLabel lblSoftwareUpdateAvailable = ((JLabel)getComponentByName("lblSoftwareUpdateAvailable"));
 
 	        			InetAddress ip = InetAddress.getLocalHost(); // Get an active IP
 	        	        NetworkInterface network = NetworkInterface.getByInetAddress(ip); // and match to Mac Address
@@ -2483,10 +2487,10 @@ public class CookieCadgerFrame extends JFrame
         {
         	try
          	{
-        		ChangeClientsList(false);
+        		changeClientsList(false);
         		
 		    	if(bUseSessionDetection)
-		    		ChangeSessionsList(false);
+		    		changeSessionsList(false);
         	}
         	catch (Exception ex)
         	{
@@ -2500,10 +2504,10 @@ public class CookieCadgerFrame extends JFrame
 				{
 		        	try
 		        	{
-		        		ChangeClientsList(false);
+		        		changeClientsList(false);
 		        		
 				    	if(bUseSessionDetection)
-				    		ChangeSessionsList(false);
+				    		changeSessionsList(false);
 		        	}
 		        	catch (Exception ex)
 		        	{
@@ -2516,7 +2520,7 @@ public class CookieCadgerFrame extends JFrame
         }
 	}
 	
-	private void InitializeDevices()
+	private void initializeDeviceList()
 	{
 		File tshark;
 		
@@ -2528,7 +2532,7 @@ public class CookieCadgerFrame extends JFrame
 			{
 				if(new File(path).exists())
 				{
-					Console("tshark located at " + path);
+					consoleMessage("tshark located at " + path);
 					pathToTshark = path;
 					break;
 				}
@@ -2538,7 +2542,7 @@ public class CookieCadgerFrame extends JFrame
 		{
 			if(new File(pathToTshark).exists())
 			{
-				Console("tshark specified at " + pathToTshark);
+				consoleMessage("tshark specified at " + pathToTshark);
 			}
 			else
 			{
@@ -2553,7 +2557,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 		else
 		{
-			Console("Querying tshark for capture devices; tshark output follows:");
+			consoleMessage("Querying tshark for capture devices; tshark output follows:");
 
 			String line = "";
 			try {
@@ -2567,7 +2571,7 @@ public class CookieCadgerFrame extends JFrame
 				while ((line = br.readLine()) != null)
 				{
 					// Print every piece of output to the console
-					Console(line);
+					consoleMessage(line);
 
 					boolean isNumericStart = true;
 					try
@@ -2602,11 +2606,11 @@ public class CookieCadgerFrame extends JFrame
 				e.printStackTrace();
 			}
 			
-			Console("Capture device search completed with " + deviceName.size() + " devices found.");
+			consoleMessage("Capture device search completed with " + deviceName.size() + " devices found.");
 		}
 	}
 
-	private void CreateSession(int requestID, String userToken, String description, String profilePhotoUrl, String sessionUri)
+	private void createBrowserSession(int requestID, String userToken, String description, String profilePhotoUrl, String sessionUri)
 	{	
 		boolean bHaveImage = false;
 		Image photo = null;
@@ -2654,7 +2658,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 	}
 	
-	private void Console(String text)
+	private void consoleMessage(String text)
 	{
 		if(txtConsole.getText().isEmpty())
 			txtConsole.setText(text);
@@ -2666,7 +2670,7 @@ public class CookieCadgerFrame extends JFrame
 		System.out.println(text);
 	}
 	
-	private HashMap<String, Component> CreateComponentMap(JPanel panel)
+	private HashMap<String, Component> createComponentMap(JPanel panel)
 	{
 		HashMap<String, Component> componentMap = new HashMap<String,Component>();
         Component[] components = panel.getComponents();
@@ -2693,7 +2697,7 @@ public class CookieCadgerFrame extends JFrame
         return componentMap;
 	}
 
-	private Component GetComponentByName(String name) {
+	private Component getComponentByName(String name) {
         if (componentMap.containsKey(name)) {
                 return (Component) componentMap.get(name);
         }

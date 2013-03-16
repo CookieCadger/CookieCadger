@@ -95,65 +95,73 @@ public class DatabaseHandler
 	
 	public boolean containsValue(String table, String field, String value) throws SQLException
 	{
-	    Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select count(id) as r_count from " + table + " where " + field + " = '" + value + "'");
+		boolean bContainsValue = false;
+		
+	    PreparedStatement prep = dbInstance.prepareStatement("select count(id) as r_count from " + table + " where " + field + " = ?;");
+	    prep.setString(1, value);
+	    ResultSet rs = prep.executeQuery();
 	    rs.next();
 	    
 	    if(rs.getInt("r_count") > 0)
 	    {
-	    	rs.close();
-	    	stat.close();
-	    	return true;
+	    	bContainsValue = true;
 	    }
 	    
 	    rs.close();
-	    stat.close();
-	    return false;
+	    prep.close();
+	    
+	    return bContainsValue;
 	}
 	
 	public int getNewestRequestID(int client_id, int domain_id) throws SQLException
 	{
-	    Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select id from requests where client_id = '" + Integer.toString(client_id) + "' and domain_id = '" + Integer.toString(domain_id) + "' order by id desc limit 1");
-
+	    PreparedStatement prep = dbInstance.prepareStatement("select id from requests where client_id = ? and domain_id = ? order by id desc limit 1;");
+	    prep.setInt(1, client_id);
+	    prep.setInt(2, domain_id);
+	    ResultSet rs = prep.executeQuery();
 	    rs.next();
+	    
 	    int value = rs.getInt("id");
 	    rs.close();
-	    stat.close();
+	    prep.close();
 	    
 	    return value;
 	}
 	
 	public int getIntegerValue(String table, String fieldToGet, String fieldToMatchAgainst, String valueToMatchAgainst) throws SQLException
 	{
-	    Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select " + fieldToGet + " from " + table + " where " + fieldToMatchAgainst + " = '" + valueToMatchAgainst + "'");
-
+	    PreparedStatement prep = dbInstance.prepareStatement("select " + fieldToGet + " from " + table + " where " + fieldToMatchAgainst + " = ?;");
+	    prep.setString(1, valueToMatchAgainst);
+	    ResultSet rs = prep.executeQuery();
 	    rs.next();
+
 	    int value = rs.getInt(fieldToGet);
 	    rs.close();
-	    stat.close();
+	    prep.close();
 	    
 	    return value;
 	}
 	
 	public void setStringValue(String table, String fieldToSet, String valueToSet, String fieldToMatchAgainst, String valueToMatchAgainst) throws SQLException
 	{
-	    Statement stat = dbInstance.createStatement();
-	    
-	    stat.executeUpdate("update " + table + " set " + fieldToSet + " = '" + valueToSet + "' where " + fieldToMatchAgainst + " = '" + valueToMatchAgainst + "'");
-	    stat.close();
+		PreparedStatement prep = dbInstance.prepareStatement("update " + table + " set " + fieldToSet + " = ? where " + fieldToMatchAgainst + " = ?;");
+		prep.setString(1, valueToSet);
+		prep.setString(2, valueToMatchAgainst);
+		
+		prep.executeUpdate();
+		prep.close();
 	}
 	
 	public String getStringValue(String table, String fieldToGet, String fieldToMatchAgainst, String valueToMatchAgainst) throws SQLException
 	{
-	    Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select " + fieldToGet + " from " + table + " where " + fieldToMatchAgainst + " = '" + valueToMatchAgainst + "'");
-
+	    PreparedStatement prep = dbInstance.prepareStatement("select " + fieldToGet + " from " + table + " where " + fieldToMatchAgainst + " = ?;");
+	    prep.setString(1, valueToMatchAgainst);
+	    ResultSet rs = prep.executeQuery();
 	    rs.next();
+
 	    String value = rs.getString(fieldToGet);
 	    rs.close();
-	    stat.close();
+	    prep.close();
 	    
 	    return value;
 	}
@@ -173,9 +181,9 @@ public class DatabaseHandler
 			}
 		}
 
-	    Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select " + fieldNames + " from " + table + " where " + fieldToMatchAgainst + " = '" + valueToMatchAgainst + "'");
-
+	    PreparedStatement prep = dbInstance.prepareStatement("select " + fieldNames + " from " + table + " where " + fieldToMatchAgainst + " = ?;");
+	    prep.setString(1, valueToMatchAgainst);
+	    ResultSet rs = prep.executeQuery();
 	    rs.next();
 	    
 	    for(String field : fieldToGet)
@@ -184,7 +192,7 @@ public class DatabaseHandler
 	    }
 	    
 	    rs.close();
-	    stat.close();
+	    prep.close();
 	    
 	    return resultMap;
 	}
@@ -301,6 +309,7 @@ public class DatabaseHandler
 	public String[] getMacs(boolean bOnlyHostsWithData, String searchString) throws SQLException
 	{
 		String criteria = "1";
+		boolean bHasMacSearch = false;
 		
 		if(bOnlyHostsWithData)
 		{
@@ -309,28 +318,35 @@ public class DatabaseHandler
 		
 		if(searchString != null && searchString.length() > 0)
 		{
-			criteria = criteria + " AND mac_address LIKE '%" + searchString + "%'";
+			searchString = "%" + searchString + "%";
+			criteria = criteria + " AND mac_address LIKE ?";
+			bHasMacSearch = true;
+		}
+		
+		PreparedStatement prep = dbInstance.prepareStatement("select mac_address from clients where " + criteria + ";");
+		if(bHasMacSearch)
+		{
+			prep.setString(1, searchString);
 		}
 
-		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select mac_address from clients where " + criteria + ";");
-
+	    ResultSet rs = prep.executeQuery();
+		
 	    String[] value = toStringArray(rs, "mac_address");
-	    
 	    rs.close();
-	    stat.close();
+	    prep.close();
 	    
 	    return value;
 	}
 	
 	public String[] getUserAgents(String macAddress) throws SQLException
 	{
-		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select distinct r.useragent from requests r inner join clients c on c.id = r.client_id where c.mac_address = '" + macAddress + "';");
+		PreparedStatement prep = dbInstance.prepareStatement("select distinct r.useragent from requests r inner join clients c on c.id = r.client_id where c.mac_address = ?;");
+		prep.setString(1, macAddress);
+		ResultSet rs = prep.executeQuery();
 
 	    String[] value = toStringArray(rs, "useragent");
 	    rs.close();
-	    stat.close();
+	    prep.close();
 	    
 	    return value;
 	}
@@ -338,10 +354,10 @@ public class DatabaseHandler
 	public EnhancedJListItem[] getSessions() throws SQLException
 	{
 		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select count(id) as count from sessions where 1;");
+	    ResultSet rs = stat.executeQuery("select count(id) as r_count from sessions where 1;");
 	    
 	    rs.next();
-	    int numSessions = rs.getInt("count");
+	    int numSessions = rs.getInt("r_count");
 	    
 	    EnhancedJListItem[] items = new EnhancedJListItem [numSessions];
 	    int i = 0;
@@ -370,31 +386,41 @@ public class DatabaseHandler
 	public String[] getDomains(String macAddress, String searchString) throws SQLException
 	{
 		String criteria = "";
+		boolean bHasDomainSearch = false;
 		
 		if(searchString != null && searchString.length() > 0)
 		{
-			criteria = "AND d.name LIKE '%" + searchString + "%'";
+			searchString = "%" + searchString + "%";
+			criteria = "AND d.name LIKE ?";
+			bHasDomainSearch = true;
 		}
 		
-		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select distinct d.name from domains d inner join requests r on d.id = r.domain_id inner join clients c on c.id = r.client_id where c.mac_address = '" + macAddress + "' " + criteria + ";");
+		PreparedStatement prep = dbInstance.prepareStatement("select distinct d.name from domains d inner join requests r on d.id = r.domain_id inner join clients c on c.id = r.client_id where c.mac_address = ? " + criteria + ";");
+		prep.setString(1, macAddress);
+		if(bHasDomainSearch)
+		{
+			prep.setString(2, searchString);
+		}
 
+	    ResultSet rs = prep.executeQuery();
+		
 	    String[] value = toStringArray(rs, "name");
 	    rs.close();
-	    stat.close();
+	    prep.close();
 	    
 	    return value;
 	}
 	
 	public int getDomainCount(String macAddress) throws SQLException
-	{		
-		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select count(distinct d.name) as num_domains from domains d inner join requests r on d.id = r.domain_id inner join clients c on c.id = r.client_id where c.mac_address = '" + macAddress + "';");
+	{	
+		PreparedStatement prep = dbInstance.prepareStatement("select count(distinct d.name) as num_domains from domains d inner join requests r on d.id = r.domain_id inner join clients c on c.id = r.client_id where c.mac_address = ?;");
+		prep.setString(1, macAddress);
+		ResultSet rs = prep.executeQuery();
 
 	    rs.next();
 	    int numDomains = rs.getInt("num_domains");
 	    rs.close();
-	    stat.close();
+	    prep.close();
 	    
 	    return numDomains;
 	}
@@ -405,39 +431,37 @@ public class DatabaseHandler
 	    ResultSet rs = stat.executeQuery("select count(id) as num_clients from clients where 1;");
 
 	    rs.next();
-	    int numDomains = rs.getInt("num_clients");
+	    int numClients = rs.getInt("num_clients");
 	    rs.close();
 	    stat.close();
 	    
-	    return numDomains;
+	    return numClients;
 	}
-	
-	public String[] getCookies(String id) throws SQLException
-	{
-		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select cookies from requests where id = '" + id + "';");
-
-	    String[] value = toStringArray(rs, "cookies");
-	    rs.close();
-	    stat.close();
-	    
-	    return value;
-	}
-	
+		
 	public ArrayList<ArrayList> getRequests(String macAddress, String domain, String searchString) throws SQLException
 	{
 		String criteria = "";
+		boolean bHasUriSearch = false;
 		
 		if(searchString != null && searchString.length() > 0)
 		{
-			criteria = "AND r.uri LIKE '%" + searchString + "%'";
+			searchString = "%" + searchString + "%";
+			criteria = "AND r.uri LIKE ?";
+			bHasUriSearch = true;
 		}
 		
 		ArrayList<ArrayList> request_list = new ArrayList<ArrayList>();
+
+		PreparedStatement prep = dbInstance.prepareStatement("select r.id, r.timerecorded, r.uri, r.description from requests r inner join domains d on r.domain_id = d.id inner join clients c on c.id = r.client_id where c.mac_address = ? AND d.name LIKE ? " + criteria + ";");
+		prep.setString(1, macAddress);
+		prep.setString(2, domain);
+		if(bHasUriSearch)
+		{
+			prep.setString(3, searchString);
+		}
 		
-		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select r.id, r.timerecorded, r.uri, r.description from requests r inner join domains d on r.domain_id = d.id inner join clients c on c.id = r.client_id where c.mac_address = '" + macAddress + "' AND d.name LIKE '" + domain + "' " + criteria + ";");
-	    
+		ResultSet rs = prep.executeQuery();
+		
 	    ArrayList<String> ids = new ArrayList<String>();
 	    ArrayList<String> timerecordeds = new ArrayList<String>();
 	    ArrayList<String> uris = new ArrayList<String>();
@@ -451,6 +475,7 @@ public class DatabaseHandler
 	      descriptions.add(rs.getString("description"));
 	    }
 	    rs.close();
+	    prep.close();
 	    
 	    request_list.add(ids);
 	    request_list.add(timerecordeds);

@@ -58,7 +58,7 @@ public class CookieCadgerUtils
 	    }
 	}
 	
-	public static void LoadPreferences()
+	public static void loadApplicationPreferences()
 	{
 		// Retrieve the user preference node
 		if(prefs == null)
@@ -76,7 +76,7 @@ public class CookieCadgerUtils
 		programSettings.put("databaseRefreshRate", prefs.getInt("databaseRefreshRate", 15));
 	}
 	
-	public static void SavePreferences()
+	public static void saveApplicationPreferences()
 	{
 		for (Iterator<Map.Entry<String, Object>> it = programSettings.entrySet().iterator(); it.hasNext();)
 		{
@@ -99,12 +99,12 @@ public class CookieCadgerUtils
 		}
 	}
 	
-	public static int GetLocalRandomization()
+	public static int getLocalRandomization()
 	{
 		return localRandomization;
 	}
 	
-	public static void DisplayAboutWindow()
+	public static void displayAboutWindow()
 	{
 		JOptionPane.showMessageDialog(null, "Cookie Cadger (v"+ version +")\n\n" +
 				"Copyright (c) 2012, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>\n" +

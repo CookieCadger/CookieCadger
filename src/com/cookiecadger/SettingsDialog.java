@@ -66,7 +66,7 @@ public class SettingsDialog extends JDialog {
 						CookieCadgerUtils.programSettings.put("databaseName", txtDatabaseName.getText());
 						CookieCadgerUtils.programSettings.put("databaseRefreshRate", txtDatabaseRefreshRate.getText());
 						
-						CookieCadgerUtils.SavePreferences();
+						CookieCadgerUtils.saveApplicationPreferences();
 						JOptionPane.showMessageDialog(null, "You must restart Cookie Cadger for changes to take effect.");
 						
 						SettingsDialog.this.dispose();
@@ -149,7 +149,7 @@ public class SettingsDialog extends JDialog {
 				JComboBox source = ((JComboBox)e.getSource());
 				boolean bUsingExternal = !source.getSelectedItem().equals(CookieCadgerUtils.databaseEngineChoices.SQLITE);
 				
-				ChangeDatabaseFields(bUsingExternal);
+				changeDatabaseFields(bUsingExternal);
 			}
 		});
 		comboDatabaseEngine.setModel(new DefaultComboBoxModel(CookieCadgerUtils.databaseEngineChoices.values()));
@@ -227,7 +227,7 @@ public class SettingsDialog extends JDialog {
 				comboDatabaseEngine.setSelectedItem(enum_option);
 				if(enum_option.equals(CookieCadgerUtils.databaseEngineChoices.SQLITE))
 				{
-					ChangeDatabaseFields(false);
+					changeDatabaseFields(false);
 				}
 				break;
 			}
@@ -241,7 +241,7 @@ public class SettingsDialog extends JDialog {
 		txtDatabaseRefreshRate.setText(((Integer)CookieCadgerUtils.programSettings.get("databaseRefreshRate")).toString());
 	}
 	
-	private void ChangeDatabaseFields(boolean bUsingExternal)
+	private void changeDatabaseFields(boolean bUsingExternal)
 	{
 		txtDatabaseHost.setEnabled(bUsingExternal);
 		txtDatabaseUser.setEnabled(bUsingExternal);

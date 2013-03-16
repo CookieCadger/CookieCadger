@@ -23,7 +23,7 @@ public class Program
 			@Override
 			public void handleAbout(Object applicationEvent)
 			{
-				CookieCadgerUtils.DisplayAboutWindow();
+				CookieCadgerUtils.displayAboutWindow();
 			}
 		});
 		
