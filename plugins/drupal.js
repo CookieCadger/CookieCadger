@@ -12,7 +12,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 
 	if(cookies.indexOf("SESS") != -1 && cookies.indexOf("has_js=") != -1)
 	{
-		var pageContent = Packages.com.cookiecadger.CookieCadgerUtils.readUrl("http://" + host + uri, userAgent, accept, cookies);
+		var pageContent = Packages.com.cookiecadger.Utils.readUrl("http://" + host + uri, userAgent, accept, cookies);
 
 		// this is kind of them dependent so we try a few variations
 		if(pageContent.indexOf('Log out') != -1 || pageContent.indexOf('Logout') != -1 || pageContent.indexOf('logout') != -1)

@@ -1,32 +1,4 @@
 /*
- * Copyright (c) 2013, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 3. By using this software, you agree to provide the Software Creator (Matthew
- *    Sullivan) exactly one drink of his choice under $10 USD in value if he
- *    requests it of you.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/*
  * First time in Java (+ Eclipse)... sorry for the mess!  M.S. 
  */
 
@@ -51,10 +23,6 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 
 import javax.imageio.ImageIO;
-import javax.script.Invocable;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
@@ -92,7 +60,6 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.URI;
 import java.net.URL;
-import java.net.URLConnection;
 import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.text.DateFormat;
@@ -100,15 +67,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 
 import org.browsermob.proxy.ProxyServer;
 import org.openqa.selenium.JavascriptExecutor;
@@ -121,290 +81,33 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import com.cookiecadger.SortedListModel.SortOrder;
 
 public class CookieCadgerFrame extends JFrame
-{
-	private static String executionPath = System.getProperty("user.dir").replace("\\", "/");
-	
+{	
 	private JPanel contentPane, requestsPanel, sessionsPanel;
-	private EnhancedListModel clientsListModel, domainsListModel, requestsListModel, sessionsListModel;
+	public EnhancedListModel clientsListModel, domainsListModel, requestsListModel, sessionsListModel;
 	private DefaultComboBoxModel<String> interfacesListModel;
-	private EnhancedJList clientsList, domainsList, requestsList, sessionsList;
-	private EnhancedJTextField txtClientSearch, txtDomainSearch, txtRequestSearch;
+	public EnhancedJList clientsList, domainsList, requestsList, sessionsList;
+	public EnhancedJTextField txtClientSearch, txtDomainSearch, txtRequestSearch;
 	private JTextArea txtConsole;
 	private JScrollPane consoleScrollPane;
 	private JTabbedPane tabbedPane;
 	private JProgressBar loadingRequestProgressBar;
-	private String pathToTshark;
-	private ArrayList<Boolean> bCapturing = new ArrayList<Boolean>();
-	private ArrayList<String> deviceName = new ArrayList<String>();
-	private ArrayList<String> deviceDescription = new ArrayList<String>();
-	private ArrayList<Process> deviceCaptureProcess = new ArrayList<Process>();
-	private ArrayList<String> sessionDetectors = new ArrayList<String>();
 	private HashMap<String, Component> componentMap; // Cheers to Jesse Strickland (stackoverflow.com/questions/4958600/get-a-swing-component-by-name)
 	private JPopupMenu clientsPopup, requestsPopup, sessionsPopup;
 	
 	private WebDriver driver = null;
 	private ProxyServer server = null;
 	private Proxy proxy = null;
-	private DatabaseHandler dbInstance = null;
-	private String dbEngine = null;
-	private boolean bUsingExternalDatabase = false;
-	private boolean bUseSessionDetection = false;
-	private boolean bUseSessionDetectionSpecified = false;
-	private boolean bUpdateChecking = true;
-	private boolean bUseDemoMode = false;
-	private boolean bUseDemoModeSpecified = false;
 	private RequestInterceptor requestIntercept;
-	
+	private CaptureHandler captureHandler;
 
-	private void startCapture(int ethDevNumber, String pcapFile) throws IOException
+	public void addConsoleText(String text)
 	{
-		ProcessBuilder pb = null;
-		Process proc = null;
-		ProcessWatcher pw = null;
-		InputStream is = null;
-		
-		Date capStart = new Date();
-		ArrayList<String> nonTabbedOutput = new ArrayList<String>();
-		
-		if(pcapFile.isEmpty())
-		{			
-			consoleMessage("Opening '" + deviceName.get(ethDevNumber) + "' for traffic capture.");
-			pb = new ProcessBuilder(new String[] { pathToTshark, "-i", deviceName.get(ethDevNumber), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
-			pb.redirectErrorStream(true);
-			deviceCaptureProcess.set(ethDevNumber, pb.start());
-			pw = new ProcessWatcher(deviceCaptureProcess.get(ethDevNumber));
-			is = deviceCaptureProcess.get(ethDevNumber).getInputStream();
-		}
+		if(txtConsole.getText().isEmpty())
+			txtConsole.setText(text);
 		else
-		{
-			consoleMessage("Opening '" + pcapFile + "' for traffic capture.");
-			pb = new ProcessBuilder(new String[] { pathToTshark, "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
-			pb.redirectErrorStream(true);
-			proc = pb.start();
-			pw = new ProcessWatcher(proc);
-			is = proc.getInputStream();
-		}
+			txtConsole.append("\n" + text);
 		
-		InputStreamReader isr = new InputStreamReader(is);
-		BufferedReader br = new BufferedReader(isr);
-
-		String line = null;
-		try
-		{
-			while ((line = br.readLine()) != null || pw.isFinished()) // Do while you have data to read, or if the process finishes start the loop to ensure all buffer has read, then exit
-			{
-				if(line == null) // Can happen while loading in and the proc finishes faster than readin
-				{
-					break;
-				}
-
-				if(line.contains("\t"))
-				{
-					String[] values = line.split("\t", -1); // -1 limit means don't ignore whitespace
-
-					if(values.length > 4) // If only contains four or less values, likely continuation data, ignore.
-					{		
-						String macAddressWired = values[0];
-						String macAddressWireless = values[1];
-						
-						String macAddress;
-						if(!macAddressWired.isEmpty())
-							macAddress = macAddressWired;
-						else if(!macAddressWireless.isEmpty())
-							macAddress = macAddressWireless;
-						else // No MAC would hopefully never actually happen, but you never know
-							macAddress = "Unknown";
-						
-						String ipv4Address = values[2];
-						String ipv6Address = values[3];
-						//String tcpSource = values[4]; //Unused
-						String tcpDestination = values[5];
-						String udpSource = values[6];
-						//String udpDestination = values[7]; //Unused
-						String netbiosCommand = values[8];
-						String netbiosName = values[9];
-						String mdnsName = values[10];
-						String requestHost = values[11];
-						String requestUri = values[12];
-						String accept = values[13];
-						String acceptEncoding = values[14];
-						String userAgent = values[15];
-						String refererUri = values[16];
-						String cookieData = values[17];
-						String authorization = values[18];
-						String authBasic = values[19];
-			
-						boolean bUsefulData = false;
-						int clientID = -1;
-						
-						// Poor man's implementation of a packet filter for when pcaps are loaded
-						if(!pcapFile.isEmpty() && (!tcpDestination.equals("80") && !udpSource.equals("5353") && !udpSource.equals("138")))
-						{
-							continue;
-						}
-						
-						// When Cookie Cadger creates requests it appends a randomization
-						// to the Accept header. Check for it and ignore if matched.
-						if(accept.contains(", " + Integer.toString(CookieCadgerUtils.getLocalRandomization())))
-						{
-							continue;
-						}
-
-						if(!requestUri.isEmpty())
-						{
-							bUsefulData = true;
-							clientID = handleClient(macAddress);
-							
-							processRequest(macAddress, ipv4Address, ipv6Address, requestHost, accept, acceptEncoding, requestUri, userAgent, refererUri, cookieData, authorization, authBasic);
-						}
-						else if(!netbiosCommand.isEmpty() && netbiosCommand.equals("0x0f") && !netbiosName.isEmpty()) // 0x0f = host announcement broadcast
-						{
-							bUsefulData = true;
-							clientID = handleClient(macAddress);
-							
-							dbInstance.setStringValue("clients", "netbios_hostname", netbiosName, "mac_address", macAddress);
-						
-							// If only show hosts with GET requests is unchecked, always show. If checked and total for this MAC > 0, show as well. Then check to see if filtering is enabled
-							if(!clientsListModel.contains(macAddress) && 
-									!((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) > 0 ) &&
-									(txtClientSearch.getText().isEmpty() || (txtClientSearch.getText().length() > 0 && macAddress.contains(txtClientSearch.getText())))
-									)
-							{
-								clientsListModel.addElement(new EnhancedJListItem(clientID, macAddress, null));
-								clientsList.performHighlight(macAddress, Color.BLUE);
-							}
-						}
-						else if(!mdnsName.isEmpty())
-						{
-							if(mdnsName.contains(","))
-							{
-								String[] mdnsResponses = mdnsName.split(",");
-								String mdnsNameStr = mdnsResponses[mdnsResponses.length - 1];
-								
-								if(!mdnsNameStr.contains(".arpa") && !mdnsNameStr.contains("_tcp") && !mdnsNameStr.contains("_udp") && !mdnsNameStr.contains("<Root>"))
-								{
-									bUsefulData = true;
-									clientID = handleClient(macAddress);
-									
-									mdnsNameStr = mdnsNameStr.replace(".local", "");
-
-									dbInstance.setStringValue("clients", "mdns_hostname", mdnsNameStr, "mac_address", macAddress);
-									
-									// If only show hosts with GET requests is unchecked, always show. If checked and total for this MAC > 0, show as well
-									if(!clientsListModel.contains(macAddress) && !((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) == 1 ) &&
-											(txtClientSearch.getText().isEmpty() || (txtClientSearch.getText().length() > 0 && macAddress.contains(txtClientSearch.getText())))
-											)
-									{
-										clientsListModel.addElement(new EnhancedJListItem(clientID, macAddress, null));
-										clientsList.performHighlight(macAddress, Color.BLUE);
-									}
-								}
-							}
-						}
-						
-						if(bUsefulData)
-						{
-							if(!ipv4Address.isEmpty())
-								dbInstance.setStringValue("clients", "ipv4_address", ipv4Address, "mac_address", macAddress);
-							
-							if(!ipv6Address.isEmpty())
-								dbInstance.setStringValue("clients", "ipv6_address", ipv6Address, "mac_address", macAddress);
-						}
-						
-						// And update the informational display
-						updateDescriptionForMac(macAddress);
-					}
-				}
-				else
-				{
-					nonTabbedOutput.add(line);
-				}
-			}
-		}
-		catch (IOException ioe)
-		{
-			// Do nothing
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-
-			if(!pcapFile.isEmpty() && proc != null)
-			{
-				proc.destroy();
-			}
-			else
-			{
-				if(deviceCaptureProcess.get(ethDevNumber) != null)
-					deviceCaptureProcess.get(ethDevNumber).destroy();
-			}
-		}
-		finally
-		{
-			if(br != null)
-				br.close();
-			if(isr != null)
-				isr.close();
-			if(is != null)
-				is.close();
-		}
-		
-		if(pcapFile.isEmpty())
-			stopCapture(ethDevNumber); // Update UI and clean up
-		
-		Date capEnd = new Date();
-		int runTimeInSeconds = (int) ((capEnd.getTime() - capStart.getTime()) / 1000);
-		
-		if(pcapFile.isEmpty() && runTimeInSeconds <= 20)
-		{
-			consoleMessage(deviceName.get(ethDevNumber) + ": " + "============================================================================");
-			consoleMessage(deviceName.get(ethDevNumber) + ": " + "Start of diagnostic information for interface '" + deviceName.get(ethDevNumber) + "'");
-			consoleMessage(deviceName.get(ethDevNumber) + ": " + "============================================================================");
-			
-			for (String output : nonTabbedOutput)
-			{
-				consoleMessage(deviceName.get(ethDevNumber) + ": " + output);				
-			}
-			
-			consoleMessage(deviceName.get(ethDevNumber) + ": " + "============================================================================");
-			consoleMessage(deviceName.get(ethDevNumber) + ": " + "Potential error detected! Capture stopped / died in " + Integer.toString(runTimeInSeconds) + " seconds.");
-			consoleMessage(deviceName.get(ethDevNumber) + ": " + "All messages from the 'tshark' program have been printed above to assist you in solving any errors.");
-			consoleMessage(deviceName.get(ethDevNumber) + ": " + "============================================================================");
-		}
-		else
-		{
-			if(pcapFile.isEmpty())
-				consoleMessage("'" + deviceName.get(ethDevNumber) + "' has been closed and is finished with traffic capture. Capture duration: " + Integer.toString(runTimeInSeconds) + " seconds.");
-			else
-				consoleMessage("'" + pcapFile + "' has finished processing. Processing duration: " + Integer.toString(runTimeInSeconds) + " seconds.");
-		}
-	}
-	
-	private void stopCapture(int ethDevNumber)
-	{
-		interfacesListModel.removeElementAt(ethDevNumber);
-		interfacesListModel.insertElementAt(deviceName.get(ethDevNumber) + " [" + deviceDescription.get(ethDevNumber) + "]", ethDevNumber);
-		((JComboBox<?>)getComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
-
-		if (deviceCaptureProcess.get(ethDevNumber) != null)
-		{
-			deviceCaptureProcess.get(ethDevNumber).destroy();
-		}
-		
-		bCapturing.set(ethDevNumber, false);
-		
-		setCaptureButtonText();
-	}
-	
-	private void prepCapture(int ethDevNumber)
-	{
-		interfacesListModel.removeElementAt(ethDevNumber);
-		interfacesListModel.insertElementAt(deviceName.get(ethDevNumber) + " [" + deviceDescription.get(ethDevNumber) + "] (CURRENTLY CAPTURING)", ethDevNumber);
-		((JComboBox<?>)getComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
-		
-		bCapturing.set(ethDevNumber, true);
-		
-		setCaptureButtonText();
+		txtConsole.setCaretPosition(txtConsole.getDocument().getLength());
 	}
 	
 	private void clearGUI()
@@ -422,7 +125,7 @@ public class CookieCadgerFrame extends JFrame
 	private boolean resetData()
 	{
 		// If sqlite, and this user session is not empty set
-		if(dbEngine.equals("sqlite"))
+		if(Utils.dbEngine.equals("sqlite"))
 		{
 		    // Ask the user to save
 		    int saveDatasetResult = JOptionPane.showConfirmDialog(
@@ -437,7 +140,7 @@ public class CookieCadgerFrame extends JFrame
 	    	}
 		    else if (saveDatasetResult == JOptionPane.YES_OPTION)
 		    {
-		    	dbInstance.saveDatabase();
+		    	Utils.dbInstance.saveDatabase();
 		    }
 		}
 		else
@@ -457,7 +160,7 @@ public class CookieCadgerFrame extends JFrame
 
 		try
 		{
-			dbInstance.clearTables();
+			Utils.dbInstance.clearTables();
 		}
 		catch (SQLException e)
 		{
@@ -466,6 +169,33 @@ public class CookieCadgerFrame extends JFrame
 		
 		// Made it to here? That means we've committed to deletion, let the caller know
 		return true;
+	}
+	
+	public void stopCapture(int ethDevNumber)
+	{
+		interfacesListModel.removeElementAt(ethDevNumber);
+		interfacesListModel.insertElementAt(captureHandler.deviceName.get(ethDevNumber) + " [" + captureHandler.deviceDescription.get(ethDevNumber) + "]", ethDevNumber);
+		((JComboBox<?>)getComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
+
+		if (captureHandler.deviceCaptureProcess.get(ethDevNumber) != null)
+		{
+			captureHandler.deviceCaptureProcess.get(ethDevNumber).destroy();
+		}
+		
+		captureHandler.bCapturing.set(ethDevNumber, false);
+		
+		setCaptureButtonText();
+	}
+	
+	private void prepCapture(int ethDevNumber)
+	{
+		interfacesListModel.removeElementAt(ethDevNumber);
+		interfacesListModel.insertElementAt(captureHandler.deviceName.get(ethDevNumber) + " [" + captureHandler.deviceDescription.get(ethDevNumber) + "] (CURRENTLY CAPTURING)", ethDevNumber);
+		((JComboBox<?>)getComponentByName("interfaceListComboBox")).setSelectedIndex(ethDevNumber);
+		
+		captureHandler.bCapturing.set(ethDevNumber, true);
+		
+		setCaptureButtonText();
 	}
 	
 	private void setCaptureButtonText()
@@ -480,260 +210,15 @@ public class CookieCadgerFrame extends JFrame
 		{
 			((JButton)getComponentByName("btnMonitorOnSelected")).setEnabled(true);
 			
-			if(bCapturing.get(selection))
+			if(captureHandler.bCapturing.get(selection))
 			{
-				((JButton)getComponentByName("btnMonitorOnSelected")).setText("Stop Capture on " + deviceName.get(selection));
+				((JButton)getComponentByName("btnMonitorOnSelected")).setText("Stop Capture on " + captureHandler.deviceName.get(selection));
 			}
 			else
 			{
-				((JButton)getComponentByName("btnMonitorOnSelected")).setText("Start Capture on " + deviceName.get(selection));
+				((JButton)getComponentByName("btnMonitorOnSelected")).setText("Start Capture on " + captureHandler.deviceName.get(selection));
 			}
 		}
-	}
-	
-	private void processRequest(final String macAddress, final String ipv4Address, final String ipv6Address, final String requestHost, final String accept, final String acceptEncoding, final String requestUri, final String userAgent, final String refererUri, final String cookieData, final String authorization, final String authBasic)
-	{
-		int clientID = -1;
-		int domainID = -1;
-		int reqID = -1;
-		final int requestID;
-	
-		try
-		{
-			if(dbInstance.containsValue("clients", "mac_address", macAddress))
-			{
-				// We've seen this mac already, just get the ClientID
-				clientID = dbInstance.getIntegerValue("clients", "id", "mac_address", macAddress); // In 'clients' get id where mac == macAddrSource
-				
-				// We're going to have activity in a previously identified host, highlight
-				clientsList.performHighlight(macAddress, Color.BLUE);
-			}
-			else // Client object doesn't exist for MAC? Create one.
-			{
-				clientID = dbInstance.createClient(macAddress);
-			}
-			
-			// Tell the client that a request was seen
-			dbInstance.setStringValue("clients", "has_http_requests", Integer.toString(1), "id", Integer.toString(clientID));
-		}
-		catch (SQLException e)
-		{
-			e.printStackTrace();
-		}
-		
-		try
-		{
-			if(dbInstance.containsValue("domains", "name", requestHost))
-			{
-				// We've seen this domain already, just get the DomainID
-				domainID = dbInstance.getIntegerValue("domains", "id", "name", requestHost);
-			}
-			else // Domain object doesn't exist for this name? Create one.
-			{
-				// Create new domain
-				domainID = dbInstance.createDomain(requestHost);
-				
-				// And display it, if appropriate to do so
-				if(!clientsList.isSelectionEmpty() && ((EnhancedJListItem)clientsList.getSelectedValue()).toString().equals(macAddress) &&
-						(txtDomainSearch.getText().isEmpty() || (txtDomainSearch.getText().length() > 0 && requestHost.toLowerCase().contains(txtDomainSearch.getText().toLowerCase())))
-						)
-				{
-					domainsListModel.addElement(new EnhancedJListItem(domainID, requestHost, null));
-				}
-			}
-			
-			// And highlight it for activity
-			domainsList.performHighlight(requestHost, Color.BLUE);
-		}
-		catch (SQLException e)
-		{
-			e.printStackTrace();
-		}
-				
-		try
-		{
-			reqID = dbInstance.createRequest(requestUri, userAgent, refererUri, cookieData, authorization, authBasic, domainID, clientID);
-			
-			// Generate hover tooltip text and save it back to the database.
-			// This allows us to only have to do this heavy processing once.
-			String description = generateDescriptionForRequest(reqID, true, true);
-			dbInstance.setStringValue("requests", "description", description, "id", Integer.toString(reqID));
-			
-			// Update the requests list if necessary
-			if(!clientsList.isSelectionEmpty() && ((EnhancedJListItem)clientsList.getSelectedValue()).toString().equals(macAddress) && !domainsList.isSelectionEmpty() && (((EnhancedJListItem)domainsList.getSelectedValue()).toString().equals(requestHost) || (((EnhancedJListItem)domainsList.getSelectedValue()).toString().equals("[ All Domains ]"))) &&
-					(txtRequestSearch.getText().isEmpty() || (txtRequestSearch.getText().length() > 0 && requestUri.toLowerCase().contains(txtRequestSearch.getText().toLowerCase())))
-					)
-			{
-				Date now = new Date();	
-				String dateString = DateFormat.getTimeInstance(DateFormat.MEDIUM).format(now);
-				
-				// If showing all domains in the request list, make sure the full request Url gets displayed
-				boolean bShowAllDomains = false;
-				if(!domainsList.isSelectionEmpty() && ((EnhancedJListItem)domainsList.getSelectedValue()).toString().equals("[ All Domains ]"))
-				{
-					bShowAllDomains = true;
-				}
-								
-				String requestDisplay = null;
-				if(bShowAllDomains)
-				{
-					requestDisplay = requestHost + requestUri;
-				}
-				else
-				{
-					requestDisplay = requestUri;
-				}
-				
-				EnhancedJListItem requestItem = new EnhancedJListItem(reqID, dateString + ": " + requestDisplay, description);
-				requestsListModel.addElement(requestItem);
-			}
-		}
-		catch (SQLException e)
-		{
-			e.printStackTrace();
-		}
-		
-		try {
-			if(!clientsListModel.contains(macAddress) && !((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() || ( ((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected() && !clientsListModel.contains(macAddress) && dbInstance.getIntegerValue("clients", "has_http_requests", "id", Integer.toString(clientID)) == 1 ) &&
-					(txtClientSearch.getText().isEmpty() || (txtClientSearch.getText().length() > 0 && macAddress.contains(txtClientSearch.getText())))
-					)
-			{
-				clientsListModel.addElement(new EnhancedJListItem(clientID, macAddress, null));
-				clientsList.performHighlight(macAddress, Color.BLUE);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-
-		updateDescriptionForMac(macAddress);
-		requestID = reqID; // Set the 'final' request ID to pass into the new handler Thread
-		
-		if(!bUseSessionDetection) // And that's as far as we'll go
-			return;
-
-		if(cookieData.isEmpty() ||
-				requestHost.isEmpty() ||
-				requestUri.isEmpty() ||
-				accept.isEmpty() ||
-				cookieData.isEmpty() ||
-				requestUri.contains("favicon.ico"))
-			return;
-
-    	SwingWorker<?, ?> analyzeRequestWorker = new SwingWorker<Object, Object>() {            
-        	@Override            
-            public Object doInBackground()
-        	{
-				// For a unique token, we'll use a quick concat of the user MAC and the request host
-        		// And yes, this means that we can't pick up multiple logins to the same site from the
-        		// same client. And while this is sad, there's not really a better way...
-        		String uniqueID = macAddress + "," + requestHost;
-				
-				// Now check for the token. If new, pass on to handler classes
-				try
-				{	
-					if(!dbInstance.containsValue("sessions", "user_token", uniqueID))
-					{
-						// Don't make these class variables, ever.
-						// Tried, that, ended up blowing up the Threads as
-						// both would access the same object during transactions
-						ScriptEngineManager manager = new ScriptEngineManager();
-					    ScriptEngine engine = manager.getEngineByName("js");
-						
-						for(String sd : sessionDetectors)
-						{
-					    	FileReader reader = new FileReader(sd);
-					    	
-					    	try
-						    {	
-					    		engine.eval(reader);
-						    }
-					    	catch (ScriptException se)
-					    	{
-					    		System.err.println("Exception in plugin '" + sd + "', stack trace follows:");
-					    		se.printStackTrace();
-					    	}
-					    	reader.close();
-	
-					    	try
-					    	{
-					    		if(engine instanceof Invocable)
-					    		{
-					    			((Invocable)engine).invokeFunction("processRequest", requestHost, requestUri, userAgent, accept, cookieData);
-					    		}
-					    	}
-					    	catch (ScriptException se)
-					    	{
-					    		System.err.println("Exception in plugin '" + sd + "', function 'processRequest'. Stack trace follows:");
-					    		se.printStackTrace();
-					    	}
-
-					    	String description = "";
-					    	String profileImageUrl = "";
-					    	String sessionUri = "";
-					    	
-					    	try
-					    	{
-					    		description = (String)engine.get("description");
-						    	profileImageUrl = (String)engine.get("profileImageUrl");
-						    	sessionUri = (String)engine.get("sessionUri");
-					    	}
-					    	catch (Exception e)
-					    	{
-					    		// Do nothing
-					    	}
-					    	
-					    	if(description != null && description.length() > 0 && !description.equals("null"))
-					    	{
-					    		if(profileImageUrl != null && profileImageUrl.equals("null"))
-					    			profileImageUrl = null;
-					    		
-					    		if(sessionUri != null && sessionUri.equals("null"))
-					    			profileImageUrl = null;
-
-				    			createBrowserSession(requestID, uniqueID, description, profileImageUrl, sessionUri);
-
-				    			// Session created, check to see if we should auto-load it as well.
-				    			if(((JCheckBox)getComponentByName("chckbxAutomaticallyLoadSessions")).isSelected())
-				    			{						    							
-				    				loadRequestIntoBrowser(requestHost, requestUri, userAgent, refererUri, cookieData, authorization);
-				    			}
-					    		
-					    		// A match has been made against this request. Exit to prevent other
-					    		// detectors from needlessly using system resources.
-					    		break;
-					    	}
-						}
-					}
-				} catch (Exception e1)
-				{
-					e1.printStackTrace();
-				}
-        		
-                return null;
-            }
-        };
-        analyzeRequestWorker.execute();
-	}
-	
-	private int handleClient(String macAddress)
-	{
-		try
-		{
-			if(dbInstance.containsValue("clients", "mac_address", macAddress))
-			{
-				return dbInstance.getIntegerValue("clients", "id", "mac_address", macAddress);
-			}
-			else
-			{
-				return dbInstance.createClient(macAddress);
-			}
-		}
-		catch (Exception e)
-		{
-			// Do nothing
-		}
-		
-		return -1;
 	}
 	
 	private void changeClientsList(boolean bClearFirst)
@@ -743,7 +228,7 @@ public class CookieCadgerFrame extends JFrame
 		final boolean bClearListFirst;
 		
 		try {
-			clients = dbInstance.getClientCount();
+			clients = Utils.dbInstance.getClientCount();
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 		}
@@ -777,9 +262,7 @@ public class CookieCadgerFrame extends JFrame
         		
         		try
         		{
-        			boolean bOnlyHostsWithData = ((JCheckBox)getComponentByName("chckbxOnlyShowHosts")).isSelected();
-
-        			String[] macAddresses = dbInstance.getMacs(bOnlyHostsWithData, ((EnhancedJTextField)getComponentByName("txtClientSearch")).getText());
+        			String[] macAddresses = Utils.dbInstance.getMacs(((EnhancedJTextField)getComponentByName("txtClientSearch")).getText());
         			for (String s : macAddresses)
         			{
         				// Update the GUI with progress
@@ -799,7 +282,7 @@ public class CookieCadgerFrame extends JFrame
 
         			    if(!clientsListModel.contains(s))
         			    {
-        			    	int clientID = dbInstance.getIntegerValue("clients", "id", "mac_address", s);
+        			    	int clientID = Utils.dbInstance.getIntegerValue("clients", "id", "mac_address", s);
         			    	clientsListModel.addElement(new EnhancedJListItem(clientID, s, null));
         			    }
 
@@ -851,9 +334,9 @@ public class CookieCadgerFrame extends JFrame
 		domainsListModel.addElement(new EnhancedJListItem(-1, "[ All Domains ]", null));
 		try
 		{
-			for (String s : dbInstance.getDomains(macAddress, ((EnhancedJTextField)getComponentByName("txtDomainSearch")).getText()))
+			for (String s : Utils.dbInstance.getDomains(macAddress, ((EnhancedJTextField)getComponentByName("txtDomainSearch")).getText()))
 			{
-				int domainID = dbInstance.getIntegerValue("domains", "id", "name", s);
+				int domainID = Utils.dbInstance.getIntegerValue("domains", "id", "name", s);
 				domainsListModel.addElement(new EnhancedJListItem(domainID, s, null));
 			}
 		} catch (SQLException e)
@@ -876,7 +359,7 @@ public class CookieCadgerFrame extends JFrame
 	{
 		boolean bPreviousSelection = false;
 		String previousSelection = null;
-		
+
 		if(!requestsList.isSelectionEmpty())
 		{
 			bPreviousSelection = true;
@@ -893,7 +376,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 		
 		try {
-			ArrayList<ArrayList> requests = dbInstance.getRequests(macAddress, uriHost, ((EnhancedJTextField)getComponentByName("txtRequestSearch")).getText());
+			ArrayList<ArrayList> requests = Utils.dbInstance.getRequests(macAddress, uriHost, ((EnhancedJTextField)getComponentByName("txtRequestSearch")).getText());
 			
 			ArrayList<String> ids = requests.get(0);
 			ArrayList<String> timerecordeds = requests.get(1);
@@ -926,13 +409,13 @@ public class CookieCadgerFrame extends JFrame
 				// If showing all domains in the request list, make sure the full request Url gets displayed
 				if(bShowAllDomains)
 				{
-					int domainID = dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
-					String domain = dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
+					int domainID = Utils.dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
+					String domain = Utils.dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
 					uri = domain + uri;
 				}
 
-				EnhancedJListItem requestItem = new EnhancedJListItem(requestID, dateString + ": " + uri, description);
-				requestsListModel.addElement(requestItem);
+		    	EnhancedJListItem requestItem = new EnhancedJListItem(requestID, dateString + ": " + uri, description);
+		    	requestsListModel.addElement(requestItem);
 			}
 		}
 		catch (SQLException e)
@@ -941,7 +424,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 		
 		if(bPreviousSelection)
-		{
+		{			
 			// If the newly generated list still contains the previously selected value, show it
 			if (requestsListModel.contains(previousSelection))
 			{
@@ -951,7 +434,7 @@ public class CookieCadgerFrame extends JFrame
 		}
 	}
 
-	private void changeSessionsList(boolean bClearFirst)
+	public void changeSessionsList(boolean bClearFirst)
 	{
 		final boolean bClearListFirst;
 		bClearListFirst = bClearFirst;
@@ -968,7 +451,7 @@ public class CookieCadgerFrame extends JFrame
 				EnhancedJListItem[] sessions;
 				try
 				{
-					sessions = dbInstance.getSessions();
+					sessions = Utils.dbInstance.getSessions();
 					
 					for (EnhancedJListItem item : sessions)
 					{
@@ -993,9 +476,31 @@ public class CookieCadgerFrame extends JFrame
 								bHaveImage = false;
 							}
 						}
+						else
+						{
+							try
+							{
+								int sessionID = item.getID();
+								int requestID = Utils.dbInstance.getIntegerValue("sessions", "request_id", "id", Integer.toString(sessionID));
+								int domainID = Utils.dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
+								String domain = Utils.dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
+								
+								URL url = new URL("https://www.google.com/s2/favicons?domain=" + domain);
+								photo = ImageIO.read(url);
+								photo = Utils.createResizedCopy(photo, 48, 48, true);
+								
+								bHaveImage = true;
+							}
+							catch (Exception e)
+							{
+								bHaveImage = false;
+							}
+						}
 						
 						if(bHaveImage)
+						{
 							item.setThumbnail(photo);
+						}
 						
 						sessionsListModel.addElement(item);
 					}
@@ -1008,7 +513,7 @@ public class CookieCadgerFrame extends JFrame
 		changeSessionsListThread.start();
 	}
 	
-	private void updateDescriptionForMac(String macAddress)
+	public void updateDescriptionForMac(String macAddress)
 	{
 		if(clientsListModel.contains(macAddress))
 		{
@@ -1041,7 +546,7 @@ public class CookieCadgerFrame extends JFrame
 		try
 		{
 			String[] fields = new String[] { "netbios_hostname", "mdns_hostname", "ipv4_address", "ipv6_address" };
-			HashMap<String,String> resultMap = dbInstance.getStringValue("clients", fields, "mac_address", macAddress);
+			HashMap<String,String> resultMap = Utils.dbInstance.getStringValue("clients", fields, "mac_address", macAddress);
 			
 			String notesTxt = htmlOpen + fontOpen + boldOpen + "MAC Address: " + boldClose + macAddress;
 			
@@ -1065,7 +570,7 @@ public class CookieCadgerFrame extends JFrame
 				notesTxt = notesTxt + newLine + boldOpen + "Host Name (mDNS/Bonjour): " + boldClose + resultMap.get("mdns_hostname");
 			}
 
-			String[] userAgents = dbInstance.getUserAgents(macAddress);
+			String[] userAgents = Utils.dbInstance.getUserAgents(macAddress);
 			ArrayList<String> displayUserAgents = new ArrayList<String>();
 			
 			for (String userAgent : userAgents)
@@ -1095,91 +600,7 @@ public class CookieCadgerFrame extends JFrame
 		return null;
 	}
 	
-	private String generateDescriptionForRequest(int requestID, boolean bUseHTML, boolean bTruncate)
-	{
-		String htmlOpen = "";
-		String boldOpen = "";
-		String fontOpen = "";
-		String fontClose = "";
-		String boldClose = "";
-		String htmlClose = "";
-		String newLine = "\r\n";
-		
-		if(bUseHTML)
-		{
-			htmlOpen = "<html>";
-			boldOpen = "<b>";
-			fontOpen = "<font size=4>";
-			fontClose = "</font>";
-			boldClose = "</b>";
-			htmlClose = "</html>";
-			newLine = "<br>";
-		}
-		
-		try {
-			String[] fields = new String[] { "timerecorded", "useragent", "referer", "auth_basic", "cookies", "uri" };
-			HashMap<String,String> resultMap = dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
-			
-			String timeRecorded = resultMap.get("timerecorded");
-			String userAgent = resultMap.get("useragent");
-			String referer = resultMap.get("referer");
-			String authBasic = resultMap.get("auth_basic");
-			String cookies = resultMap.get("cookies");
-			String uri = resultMap.get("uri");
-			
-			long timeStamp = new Long(timeRecorded);
-			Date then = new Date((long)timeStamp * 1000);
-			String dateString = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(then);
-			
-			if(bTruncate && uri.length() > 90)
-				uri = uri.substring(0, 86) + boldOpen + " ..." + boldClose;
-			 
-			String notesTxt = htmlOpen + fontOpen + boldOpen + "Date: " + boldClose + dateString;
-			notesTxt = notesTxt + newLine + boldOpen + "Uri: " + boldClose + uri;
-
-			
-			if(!userAgent.isEmpty())
-			{
-				if(bTruncate && userAgent.length() > 90)
-					userAgent = userAgent.substring(0, 86) + boldOpen + " ..." + boldClose;
-				
-				notesTxt = notesTxt + newLine + boldOpen + "User Agent: " + boldClose + userAgent;
-			}
-			
-			if(!referer.isEmpty())
-			{
-				if(bTruncate && referer.length() > 90)
-					referer = referer.substring(0, 86) + boldOpen + " ..." + boldClose;
-				
-				notesTxt = notesTxt + newLine + boldOpen + "Referer: " + boldClose + userAgent;
-			}
-			
-			if(!authBasic.isEmpty())
-			{
-				if(bTruncate && authBasic.length() > 90)
-					authBasic = authBasic.substring(0, 86) + boldOpen + " ..." + boldClose;
-				
-				notesTxt = notesTxt + newLine + boldOpen + "Basic Authorization Credentials: " + boldClose + authBasic;
-			}
-			
-			if(!cookies.isEmpty())
-			{
-				if(bTruncate && cookies.length() > 90)
-					cookies = cookies.substring(0, 86) + boldOpen + " ..." + boldClose;
-				
-				notesTxt = notesTxt + newLine + boldOpen + "Cookies: " + boldClose + cookies;
-			}
-			
-			return notesTxt;
-			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		return null;
-	}
-	
-	private void loadRequestIntoBrowser(String domain, String uri, String useragent, String referer, String cookies, String authorization)
+	public void loadRequestIntoBrowser(String domain, String uri, String useragent, String referer, String cookies, String authorization)
 	{
 		consoleScrollPane.setVisible(false);
 		
@@ -1191,7 +612,7 @@ public class CookieCadgerFrame extends JFrame
 			server = new ProxyServer(7878);
 
 	        requestIntercept = new RequestInterceptor();
-	        requestIntercept.setRandomization(Integer.toString(CookieCadgerUtils.getLocalRandomization()));
+	        requestIntercept.setRandomization(Integer.toString(Utils.getLocalRandomization()));
 	        
 	        try {
 				server.start();
@@ -1254,7 +675,7 @@ public class CookieCadgerFrame extends JFrame
 
         try
         {
-        	driver.get("http://" + domain + uri);        	
+        	driver.get("http://" + domain + uri);
         }
         catch (Exception e)
         {
@@ -1267,7 +688,7 @@ public class CookieCadgerFrame extends JFrame
 	
 	private void prepareToCloseApplication()
 	{
-		if(dbEngine.equals("sqlite"))
+		if(Utils.dbEngine.equals("sqlite"))
 		{
 			// Try to get the database unloaded
 			try
@@ -1298,14 +719,14 @@ public class CookieCadgerFrame extends JFrame
 		
 		try
 		{
-			for (Process p : deviceCaptureProcess)
+			for (Process p : captureHandler.deviceCaptureProcess)
 			{
 				if(p != null)
 					p.destroy();
 			}
 			
-			if(dbInstance != null)
-				dbInstance.closeDatabase();
+			if(Utils.dbInstance != null)
+				Utils.dbInstance.closeDatabase();
 		}
 		catch (Exception ex)
 		{
@@ -1317,128 +738,20 @@ public class CookieCadgerFrame extends JFrame
 		System.exit(0);
 	}
 	
-	private void handleProgramArguments(String[] args)
-	{
-		int i = 0;
-		String arg;
-		boolean bTerminate = false;
+	public CookieCadgerFrame() throws Exception
+	{		
+		// Tell Utils that we're in GUI mode
+		Utils.cookieCadgerFrame = this;
+		Utils.initializeDatabase();
+		
+		// Prepare capture handler
+		captureHandler = new CaptureHandler();
 
-		while (i < args.length && (args[i].startsWith("-") || args[i].startsWith("/")))
-		{
-			arg = args[i++];
-
-		    // use this type of check for arguments that require arguments
-			if (arg.contains("tshark"))
-			{
-				boolean filledRequirements = false;
-				if(arg.contains("tshark="))
-				{
-					String value = arg.split("=")[1];
-					if(value.length() > 0)
-					{
-						filledRequirements = true;
-						this.pathToTshark = value;
-					}
-				}
-
-				if(!filledRequirements)
-				{
-					System.err.println("--tshark requires a path to the tshark binary");
-					bTerminate = true;
-				}
-			}
-			else if (arg.contains("detection"))
-			{
-				boolean filledRequirements = false;
-				if(arg.contains("detection="))
-				{
-					String value = arg.split("=")[1];
-					
-					if(value.equals("on"))
-					{
-						bUseSessionDetection = true;
-						bUseSessionDetectionSpecified = true;
-						filledRequirements = true;
-					}
-					else if (value.equals("off"))
-					{
-						bUseSessionDetection = false;
-						bUseSessionDetectionSpecified = true;
-						filledRequirements = true;
-					}
-				}
-
-				if(!filledRequirements)
-				{
-					bTerminate = true;
-					System.err.println("--detection (Session Detection) requires an 'on' or 'off' value");
-				}
-			}
-			else if (arg.contains("update"))
-			{
-				boolean filledRequirements = false;
-				if(arg.contains("update="))
-				{
-					String value = arg.split("=")[1];
-					
-					if(value.equals("on"))
-					{
-						bUpdateChecking = true;
-						filledRequirements = true;
-					}
-					else if (value.equals("off"))
-					{
-						bUpdateChecking = false;
-						filledRequirements = true;
-					}
-				}
-
-				if(!filledRequirements)
-				{
-					bTerminate = true;
-					System.err.println("--detection (Session Detection) requires an 'on' or 'off' value");
-				}
-			}
-			else if (arg.contains("demo"))
-			{
-				boolean filledRequirements = false;
-				if(arg.contains("demo="))
-				{
-					String value = arg.split("=")[1];
-					
-					if(value.equals("on"))
-					{
-						this.bUseDemoMode = true;
-						bUseDemoModeSpecified = true;
-						filledRequirements = true;
-					}
-					else if (value.equals("off"))
-					{
-						this.bUseDemoMode = false;
-						bUseDemoModeSpecified = false;
-						filledRequirements = true;
-					}
-				}
-
-				if(!filledRequirements)
-				{
-					bTerminate = true;
-					System.err.println("--demo (automatic loading of session into the browser) requires an 'on' or 'off' value. Session Detection must also be enabled.");
-				}
-			}
-			
-			if(bTerminate)
-			{
-				dispose();
-				System.exit(0);
-			}
-		}
+		createGUI();
 	}
 	
-	public CookieCadgerFrame(String args[]) throws Exception
-	{
-		handleProgramArguments(args);
-		
+	public void createGUI() throws Exception
+	{		
 		setResizable(false);
 		addWindowListener(new WindowAdapter() {
 			@Override
@@ -1449,23 +762,6 @@ public class CookieCadgerFrame extends JFrame
 			}
 		});
 		
-		CookieCadgerUtils.loadApplicationPreferences();
-		dbEngine = (String)CookieCadgerUtils.programSettings.get("dbEngine");
-		bUsingExternalDatabase = !dbEngine.equals("sqlite");
-		
-		try
-		{
-			dbInstance = new DatabaseHandler();
-		}
-		catch (Exception ex)
-		{
-			ex.printStackTrace();
-			JOptionPane.showMessageDialog(null,
-					"Cookie Cadger will not operate correctly with the current database settings. Expect errors.\nPlease check your settings and ensure the database server is working.\nThe error was:\n\n" + ex.getMessage(),
-					"Database Failed to Initalize!",
-					JOptionPane.ERROR_MESSAGE);
-		}
-		
 		setTitle("Cookie Cadger");
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		setBounds(100, 100, 950, 680);
@@ -1474,7 +770,7 @@ public class CookieCadgerFrame extends JFrame
 		BufferedImage img = ImageIO.read(url);
 		this.setIconImage(img);
 		
-		if(!bUseSessionDetectionSpecified)
+		if((Integer)Utils.programSettings.get("bSessionDetection") == -1)
 		{
 	        // Ask the user about session detection
 	        int sessionDetection = JOptionPane.showConfirmDialog(
@@ -1494,7 +790,7 @@ public class CookieCadgerFrame extends JFrame
 	        
 	        if (sessionDetection == JOptionPane.YES_OPTION)
 	        {
-	        	bUseSessionDetection = true;
+	        	Utils.programSettings.put("bSessionDetection", 1);
 	        }
 		}
 		
@@ -1515,7 +811,7 @@ public class CookieCadgerFrame extends JFrame
 		
 		JMenuItem mntmSaveSession = null;
 		JMenuItem mntmLoadSession = null;
-		if(!bUsingExternalDatabase)
+		if(!Utils.bUsingExternalDatabase)
 		{
 			mntmSaveSession = new JMenuItem("Save Dataset");
 			mnFile.add(mntmSaveSession);
@@ -1566,7 +862,7 @@ public class CookieCadgerFrame extends JFrame
 		
 		tabbedPane.addTab("Requests", null, requestsPanel, null);
 		
-		if(bUseSessionDetection)
+		if((Integer)Utils.programSettings.get("bSessionDetection") == 1)
 		{
 			sessionsPanel = new JPanel();
 			sessionsPanel.setLayout(null);
@@ -1589,9 +885,12 @@ public class CookieCadgerFrame extends JFrame
 			chckbxAutomaticallyLoadSessions.setBounds(12, 332, 420, 25);
 			chckbxAutomaticallyLoadSessions.setName("chckbxAutomaticallyLoadSessions");
 			
-			if(bUseDemoModeSpecified)
+			if((Integer) Utils.programSettings.get("bUseDemoMode") > -1)
 			{
-				chckbxAutomaticallyLoadSessions.setSelected(bUseDemoMode);
+				int demoMode = (Integer) Utils.programSettings.get("bUseDemoMode");
+				
+				if(demoMode == 1)
+					chckbxAutomaticallyLoadSessions.setSelected(true);
 			}
 			sessionsPanel.add(chckbxAutomaticallyLoadSessions);
 			
@@ -1612,13 +911,13 @@ public class CookieCadgerFrame extends JFrame
 							
 							try
 							{
-								int requestID = dbInstance.getIntegerValue("sessions", "request_id", "id", Integer.toString(sessionID));
-								int domainID = dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
-								String sessionUri = dbInstance.getStringValue("sessions", "session_uri", "id", Integer.toString(sessionID));
-								String domain = dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
+								int requestID = Utils.dbInstance.getIntegerValue("sessions", "request_id", "id", Integer.toString(sessionID));
+								int domainID = Utils.dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
+								String sessionUri = Utils.dbInstance.getStringValue("sessions", "session_uri", "id", Integer.toString(sessionID));
+								String domain = Utils.dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
 								
 								String[] fields = new String[] { "useragent", "referer", "authorization", "cookies", "uri" };
-								HashMap<String,String> resultMap = dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
+								HashMap<String,String> resultMap = Utils.dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
 								
 								String useragent = resultMap.get("useragent");
 								String referer = resultMap.get("referer");
@@ -1659,9 +958,9 @@ public class CookieCadgerFrame extends JFrame
 
 						try
 						{
-							final int requestID = dbInstance.getIntegerValue("sessions", "request_id", "id", Integer.toString(sessionID));
-							final int domainID = dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
-							final int clientID = dbInstance.getIntegerValue("requests", "client_id", "id", Integer.toString(requestID));
+							final int requestID = Utils.dbInstance.getIntegerValue("sessions", "request_id", "id", Integer.toString(sessionID));
+							final int domainID = Utils.dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
+							final int clientID = Utils.dbInstance.getIntegerValue("requests", "client_id", "id", Integer.toString(requestID));
 							
 							SwingUtilities.invokeLater(new Runnable()
 							{
@@ -1709,8 +1008,7 @@ public class CookieCadgerFrame extends JFrame
 							});
 						} catch (SQLException e1) {
 							e1.printStackTrace();
-						}
-						
+						}						
 					}
 				}
 			});
@@ -1772,9 +1070,9 @@ public class CookieCadgerFrame extends JFrame
 		
 		interfaceListComboBox.setModel(interfacesListModel);
 		
-		JScrollPane macListScrollPanel = new JScrollPane();
-		macListScrollPanel.setBounds(22, 32, 152, 298);
-		requestsPanel.add(macListScrollPanel);
+		JScrollPane clientsListScrollPanel = new JScrollPane();
+		clientsListScrollPanel.setBounds(22, 32, 152, 336);
+		requestsPanel.add(clientsListScrollPanel);
 		
 		clientsList = new EnhancedJList();
 		
@@ -1792,16 +1090,10 @@ public class CookieCadgerFrame extends JFrame
 			}
 		});
 
-		macListScrollPanel.setViewportView(clientsList);
-		SortedListModel macListModelSorted = new SortedListModel(clientsListModel);
-		macListModelSorted.setSortOrder(SortOrder.ASCENDING);
-		clientsList.setModel(macListModelSorted);
-		
-		JCheckBox chckbxOnlyShowHosts = new JCheckBox("<html>Only show hosts<br>with HTTP traffic");
-		chckbxOnlyShowHosts.setName("chckbxOnlyShowHosts");
-		chckbxOnlyShowHosts.setSelected(true);
-		chckbxOnlyShowHosts.setBounds(2, 331, 162, 38);
-		requestsPanel.add(chckbxOnlyShowHosts);
+		clientsListScrollPanel.setViewportView(clientsList);
+		SortedListModel clientsListModelSorted = new SortedListModel(clientsListModel);
+		clientsListModelSorted.setSortOrder(SortOrder.ASCENDING);
+		clientsList.setModel(clientsListModelSorted);
 		
 		JScrollPane domainListScrollPane = new JScrollPane();
 		domainListScrollPane.setBounds(180, 32, 200, 336);
@@ -1923,7 +1215,7 @@ public class CookieCadgerFrame extends JFrame
 					Toolkit toolkit = Toolkit.getDefaultToolkit();
 					Clipboard clipboard = toolkit.getSystemClipboard();
 					int request = ((EnhancedJListItem)requestsList.getSelectedValue()).getID();
-					StringSelection strSel = new StringSelection(generateDescriptionForRequest(request, false, false));				
+					StringSelection strSel = new StringSelection(Utils.generateDescriptionForRequest(request, false, false));				
 					clipboard.setContents(strSel, null);
 				}
 			}
@@ -2018,7 +1310,7 @@ public class CookieCadgerFrame extends JFrame
 				{
 					clearGUI();
 					try {
-						dbInstance.initTables();
+						Utils.dbInstance.initTables();
 					} catch (SQLException e1) {
 						e1.printStackTrace();
 					}
@@ -2060,7 +1352,7 @@ public class CookieCadgerFrame extends JFrame
 								loadingRequestProgressBar.setString("Processing capture file, please wait...");
 								loadingRequestProgressBar.setVisible(true);
 
-								startCapture(-1, pcapFile);
+								captureHandler.startCapture(-1, pcapFile);
 								
 				                loadingRequestProgressBar.setVisible(false);
 				                consoleScrollPane.setVisible(true);
@@ -2078,11 +1370,11 @@ public class CookieCadgerFrame extends JFrame
 			}
 		});
 
-		if(!bUsingExternalDatabase)
+		if(!Utils.bUsingExternalDatabase)
 		{
 			mntmSaveSession.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent arg0) {
-					dbInstance.saveDatabase();
+					Utils.dbInstance.saveDatabase();
 				}
 			});
 
@@ -2097,16 +1389,16 @@ public class CookieCadgerFrame extends JFrame
 						clearGUI();
 						
 						try {
-							dbInstance.initTables();
+							Utils.dbInstance.initTables();
 						} catch (SQLException e) {
 							e.printStackTrace();
 						}
 						
-						dbInstance.openDatabase();
+						Utils.dbInstance.openDatabase();
 				        
 				    	changeClientsList(true);
 				    	
-				    	if(bUseSessionDetection)
+				    	if((Integer) Utils.programSettings.get("bSessionDetection") == 1)
 				    		changeSessionsList(true);
 					}
 				}
@@ -2131,7 +1423,7 @@ public class CookieCadgerFrame extends JFrame
 					Toolkit toolkit = Toolkit.getDefaultToolkit();
 					Clipboard clipboard = toolkit.getSystemClipboard();				
 					int request = ((EnhancedJListItem)requestsList.getSelectedValue()).getID();
-					StringSelection strSel = new StringSelection(generateDescriptionForRequest(request, false, false));
+					StringSelection strSel = new StringSelection(Utils.generateDescriptionForRequest(request, false, false));
 					clipboard.setContents(strSel, null);
 				}
 			}
@@ -2145,7 +1437,7 @@ public class CookieCadgerFrame extends JFrame
 				for (int i = 0; i < requestsListModel.getSize(); i++)
 				{
 					int request = ((EnhancedJListItem)requestsListModel.getElementAt(i)).getID();
-					allRequests = allRequests + generateDescriptionForRequest(request, false, false);
+					allRequests = allRequests + Utils.generateDescriptionForRequest(request, false, false);
 					
 					if( i < requestsListModel.getSize() - 1)
 						allRequests = allRequests + "\r\n\r\n---\r\n\r\n";
@@ -2162,7 +1454,7 @@ public class CookieCadgerFrame extends JFrame
 		mntmAbout.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e)
 			{
-				CookieCadgerUtils.displayAboutWindow();
+				Utils.displayAboutWindow();
 			}
 		});
 		
@@ -2239,15 +1531,15 @@ public class CookieCadgerFrame extends JFrame
 			            public Object doInBackground()
 			        	{
 							try {
-								int clientID = dbInstance.getIntegerValue("clients", "id", "mac_address", ((EnhancedJListItem)clientsList.getSelectedValue()).toString());
-								int domainID = dbInstance.getIntegerValue("domains", "id", "name", ((EnhancedJListItem)domainsList.getSelectedValue()).toString());
-								int requestID = dbInstance.getNewestRequestID(clientID, domainID);
+								int clientID = Utils.dbInstance.getIntegerValue("clients", "id", "mac_address", ((EnhancedJListItem)clientsList.getSelectedValue()).toString());
+								int domainID = Utils.dbInstance.getIntegerValue("domains", "id", "name", ((EnhancedJListItem)domainsList.getSelectedValue()).toString());
+								int requestID = Utils.dbInstance.getNewestRequestID(clientID, domainID);
 								
 								String domain = ((EnhancedJListItem)domainsList.getSelectedValue()).toString();
 								String uri = "/";
 								
 								String[] fields = new String[] { "useragent", "referer", "authorization", "cookies" };
-								HashMap<String,String> resultMap = dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
+								HashMap<String,String> resultMap = Utils.dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
 								
 								String useragent = resultMap.get("useragent");
 								String referer = resultMap.get("referer");
@@ -2282,11 +1574,11 @@ public class CookieCadgerFrame extends JFrame
 							int requestID = listItem.getID();
 							
 							try {
-								int domainID = dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
-								String domain = dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
+								int domainID = Utils.dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
+								String domain = Utils.dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
 								
 								String[] fields = new String[] { "uri", "useragent", "referer", "authorization", "cookies" };
-								HashMap<String,String> resultMap = dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
+								HashMap<String,String> resultMap = Utils.dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
 								
 								String uri = resultMap.get("uri");
 								String useragent = resultMap.get("useragent");
@@ -2323,7 +1615,7 @@ public class CookieCadgerFrame extends JFrame
 				if(selectedInterface == -1)
 					return;
 					
-				boolean bInterfaceIsCapturing = bCapturing.get(selectedInterface); // Make a copy because this value will be changing a lot...
+				boolean bInterfaceIsCapturing = captureHandler.bCapturing.get(selectedInterface); // Make a copy because this value will be changing a lot...
 							
 				if(bInterfaceIsCapturing)
 				{
@@ -2339,7 +1631,7 @@ public class CookieCadgerFrame extends JFrame
 			        	{
 							try {
 								int selectedInterface = ((JComboBox<?>)getComponentByName("interfaceListComboBox")).getSelectedIndex();
-								startCapture(selectedInterface, "");
+								captureHandler.startCapture(selectedInterface, null);
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
@@ -2353,31 +1645,21 @@ public class CookieCadgerFrame extends JFrame
 			}
 		});
 		
-		chckbxOnlyShowHosts.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				domainsListModel.clear();
-				requestsListModel.clear();
-				
-				// Status toggled, re-create the mac list
-				changeClientsList(true);
-			}
-		});
-		
 		// Associate all components with the HashMap
 		componentMap = createComponentMap(contentPane);
 				
 		// Get capture devices
-		initializeDeviceList();
+		captureHandler.initializeDeviceList();
 		
 		// Name and license
-		consoleMessage("\n\nCookie Cadger (v"+ CookieCadgerUtils.version +")\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the terms of the FreeBSD license.\n");
+		Utils.consoleMessage("\n\nCookie Cadger (v"+ Utils.version +", https://cookiecadger.com)\nCreated by Matthew Sullivan - mattslifebytes.com\nThis software is freely distributed under the terms of the FreeBSD license.\n");
 		
 		// Populate the ComboBox	
-		for (int i = 0; i < deviceName.size(); i++)
+		for (int i = 0; i < captureHandler.deviceName.size(); i++)
 		{
 			String interfaceText;
 			
-			interfaceText = deviceName.get(i) + " [" + deviceDescription.get(i) + "]";
+			interfaceText = captureHandler.deviceName.get(i) + " [" + captureHandler.deviceDescription.get(i) + "]";
 			interfacesListModel.addElement(interfaceText);
 		}
 		
@@ -2388,9 +1670,9 @@ public class CookieCadgerFrame extends JFrame
 		String[] interfaceNames = { "mon", "wlan", "en", "eth" };
 		for (String interfaceName : interfaceNames)
 		{
-			for (int i = 0; i < deviceName.size(); i++)
+			for (int i = 0; i < captureHandler.deviceName.size(); i++)
 			{
-				if(deviceName.get(i).contains(interfaceName))
+				if(captureHandler.deviceName.get(i).contains(interfaceName))
 				{
 					itemToSelect = i;
 					bFinished = true;
@@ -2404,7 +1686,7 @@ public class CookieCadgerFrame extends JFrame
 		
 		interfaceListComboBox.setSelectedIndex(itemToSelect);
 		
-		if(bUpdateChecking)
+		if((Integer) Utils.programSettings.get("bCheckForUpdates") == 1)
 		{
 			// Check for software update
 	    	SwingWorker<?, ?> updateWorker = new SwingWorker<Object, Object>() {            
@@ -2426,7 +1708,7 @@ public class CookieCadgerFrame extends JFrame
 	        	        	macAddressHashStringBuilder.append(Integer.toString((macAddressHash[i] & 0xff) + 0x100, 16).substring(1));
 	        	        }
 	        	        String macAddressHashString = macAddressHashStringBuilder.toString();
-						String releasedVersion = CookieCadgerUtils.readUrl("https://www.cookiecadger.com/update/?update=" + CookieCadgerUtils.version + "; " + System.getProperty("os.name") + "; " + System.getProperty("os.version") + "; " + System.getProperty("os.arch") + "; " + macAddressHashString, "Cookie Cadger, " + CookieCadgerUtils.version, "text/html", null);
+						String releasedVersion = Utils.readUrl("https://www.cookiecadger.com/update/?update=" + Utils.version + "; " + System.getProperty("os.name") + "; " + System.getProperty("os.version") + "; " + System.getProperty("os.arch") + "; " + macAddressHashString, "Cookie Cadger, " + Utils.version, "text/html", null);
 						
 						if(releasedVersion.length() > 0 && releasedVersion.contains("Cookie Cadger")) // String has stuff in it? Display.
 						{
@@ -2458,38 +1740,15 @@ public class CookieCadgerFrame extends JFrame
 	        };
 	        updateWorker.execute();
 		}
-        // Load all plugin classes
-        try
-        {
-			File folder = new File(executionPath + "/plugins/");
-			File[] listOfFiles = folder.listFiles();
-			 
-			for (int i = 0; i < listOfFiles.length && listOfFiles[i].isFile(); i++)
-			{ 
-				String pluginClassFilename = listOfFiles[i].getName();
-				if (pluginClassFilename.toLowerCase().endsWith(".js"))
-				{					
-					sessionDetectors.add(executionPath + "/plugins/" + pluginClassFilename);
-				}
-			}
-        }
-        catch(NullPointerException npe)
-        {
-        	// No plugins directory; do nothing
-        }
-        catch(Exception e)
-        {
-        	e.printStackTrace();
-        }
         
         // All components loaded, start refresh timer if using remote DB
-        if(!dbEngine.equals("sqlite"))
+        if(!Utils.dbEngine.equals("sqlite"))
         {
         	try
          	{
         		changeClientsList(false);
         		
-		    	if(bUseSessionDetection)
+		    	if((Integer) Utils.programSettings.get("bSessionDetection") == 1)
 		    		changeSessionsList(false);
         	}
         	catch (Exception ex)
@@ -2498,16 +1757,44 @@ public class CookieCadgerFrame extends JFrame
         	}
 			
 			// Refresh every X seconds
-	        Timer timer = new Timer( (1000 * (Integer)CookieCadgerUtils.programSettings.get("databaseRefreshRate")) , new ActionListener()
+	        Timer timer = new Timer( (1000 * (Integer)Utils.programSettings.get("databaseRefreshRate")) , new ActionListener()
 			{
 				public void actionPerformed(ActionEvent evt)
 				{
 		        	try
 		        	{
+		        		// If a request is highlighted we need to remember it
+		        		boolean bPreviousSelection = false;
+		        		String previousSelection = null;
+		        		
+		        		if(!clientsList.isSelectionEmpty() && requestsList.getSelectedValue() != null)
+		        		{
+		        			bPreviousSelection = true;
+		        			previousSelection = ((EnhancedJListItem)requestsList.getSelectedValue()).toString();
+		        		}
+		        		
+		        		// Now refresh the clients list, don't blank it first
 		        		changeClientsList(false);
 		        		
-				    	if(bUseSessionDetection)
+						if(!clientsList.isSelectionEmpty())
+						{
+							String selectedClient = ((EnhancedJListItem)clientsList.getSelectedValue()).toString();
+							changeDomainsList(selectedClient);
+						}
+		        		
+		        		if((Integer) Utils.programSettings.get("bSessionDetection") == 1)
 				    		changeSessionsList(false);
+		        		
+		        		// And give our previously highlighted requests back
+	            		if(bPreviousSelection)
+	            		{
+	            			// If the newly generated list still contains the previously selected value, show it
+	            			if (requestsListModel.contains(previousSelection))
+	            			{
+	            				int index = requestsListModel.indexOf(previousSelection);
+	            				requestsList.setSelectedValue(requestsListModel.getElementAt(index), true);
+	            			}
+	            		}
 		        	}
 		        	catch (Exception ex)
 		        	{
@@ -2515,159 +1802,9 @@ public class CookieCadgerFrame extends JFrame
 		        	}
 				}
 			});
-	        timer.setRepeats(false);
+	        timer.setRepeats(true);
 	        timer.start();
         }
-	}
-	
-	private void initializeDeviceList()
-	{
-		File tshark;
-		
-		if(pathToTshark == null || pathToTshark.isEmpty()) // no program arg specified
-		{
-			// Get tshark location by checking likely Linux, Windows, and Mac paths
-			
-			for(String path : CookieCadgerUtils.knownTsharkLocations)
-			{
-				if(new File(path).exists())
-				{
-					consoleMessage("tshark located at " + path);
-					pathToTshark = path;
-					break;
-				}
-			}
-		}
-		else // program arg specified, check that tshark exists there
-		{
-			if(new File(pathToTshark).exists())
-			{
-				consoleMessage("tshark specified at " + pathToTshark);
-			}
-			else
-			{
-				JOptionPane.showMessageDialog(null, "You specified a path to 'tshark' as an argument when starting this program, but the given path is invalid.");
-				pathToTshark = null; // Empty the user-specified value
-			}
-		}
-		
-		if(pathToTshark == null || pathToTshark.isEmpty())
-		{
-			JOptionPane.showMessageDialog(null, "Error: couldn't find 'tshark' (part of the 'Wireshark' suite). This software cannot capture or analyze packets without it.\nYou can still load previously saved sessions for replaying in the browser, but be aware you might encounter errors.\n\nYou can manually specify the location to 'tshark' as a program argument.\n\nUsage:\njava -jar CookieCadger.jar --tshark=<full path to tshark>");
-		}
-		else
-		{
-			consoleMessage("Querying tshark for capture devices; tshark output follows:");
-
-			String line = "";
-			try {
-				ProcessBuilder pb = new ProcessBuilder(new String[] { pathToTshark, "-D" } );
-				pb.redirectErrorStream(true);
-				Process proc = pb.start();
-				InputStream is = proc.getInputStream();
-				InputStreamReader isr = new InputStreamReader(is);
-				BufferedReader br = new BufferedReader(isr);
-				
-				while ((line = br.readLine()) != null)
-				{
-					// Print every piece of output to the console
-					consoleMessage(line);
-
-					boolean isNumericStart = true;
-					try
-					{
-						// If line starts with an Integer, its valid
-						Integer.parseInt(line.substring(0, 1));
-					}
-					catch(Exception e)
-					{
-						isNumericStart = false;
-					}
-
-					if(isNumericStart)
-					{
-						if(line.contains("(") && line.contains(")"))
-						{
-							// This line has a description
-							deviceDescription.add(line.substring(line.indexOf(" (") + 2, line.indexOf(")")).trim());
-							deviceName.add(line.substring(line.indexOf(". ") + 2, line.indexOf(" (")));
-						}
-						else
-						{
-							// This line has no description
-							deviceDescription.add("no description");
-							deviceName.add(line.substring(line.indexOf(" ") + 1));
-						}
-						bCapturing.add(false);
-						deviceCaptureProcess.add(null);
-					}
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
-			consoleMessage("Capture device search completed with " + deviceName.size() + " devices found.");
-		}
-	}
-
-	private void createBrowserSession(int requestID, String userToken, String description, String profilePhotoUrl, String sessionUri)
-	{	
-		boolean bHaveImage = false;
-		Image photo = null;
-		
-		// Make image
-		if(profilePhotoUrl != null && !profilePhotoUrl.isEmpty())
-		{
-			try
-			{
-				URL url = new URL(profilePhotoUrl);
-				photo = ImageIO.read(url);
-				
-				bHaveImage = true;
-			}
-			catch (Exception e)
-			{
-				e.printStackTrace();
-				
-				bHaveImage = false;
-			}
-		}
-		
-		try
-		{
-			// Why check again? Well, the querying of all this can be time consuming,
-			// meaning that other requests could have already taken care of it.
-			if(!dbInstance.containsValue("sessions", "user_token", userToken))
-			{
-				// Update DB
-				int sessionID = dbInstance.createSession(requestID, userToken, description, profilePhotoUrl, sessionUri);
-				
-				// Add listing to UI
-				EnhancedJListItem item = new EnhancedJListItem(sessionID, description, null);
-				
-				if(bHaveImage)
-					item.setThumbnail(photo);
-				
-				sessionsListModel.addElement(item);
-				sessionsList.performHighlight(description, Color.BLUE);
-			}
-		}
-		catch (SQLException e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	private void consoleMessage(String text)
-	{
-		if(txtConsole.getText().isEmpty())
-			txtConsole.setText(text);
-		else
-			txtConsole.append("\n" + text);
-		
-		txtConsole.setCaretPosition(txtConsole.getDocument().getLength());
-		
-		System.out.println(text);
 	}
 	
 	private HashMap<String, Component> createComponentMap(JPanel panel)
@@ -2697,7 +1834,7 @@ public class CookieCadgerFrame extends JFrame
         return componentMap;
 	}
 
-	private Component getComponentByName(String name) {
+	public Component getComponentByName(String name) {
         if (componentMap.containsKey(name)) {
                 return (Component) componentMap.get(name);
         }

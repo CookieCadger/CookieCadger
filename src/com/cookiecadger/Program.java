@@ -1,6 +1,35 @@
+/*
+ * Copyright (c) 2013, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 3. By using this software, you agree to provide the Software Creator (Matthew
+ *    Sullivan) exactly one drink of his choice under $10 USD in value if he
+ *    requests it of you.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package com.cookiecadger;
 
 import java.awt.EventQueue;
+import java.awt.GraphicsEnvironment;
 
 public class Program
 {	
@@ -23,7 +52,7 @@ public class Program
 			@Override
 			public void handleAbout(Object applicationEvent)
 			{
-				CookieCadgerUtils.displayAboutWindow();
+				Utils.displayAboutWindow();
 			}
 		});
 		
@@ -37,19 +66,50 @@ public class Program
 					{
 						if(arg.contains("-help") || arg.contains("/help") || arg.contains("/?") || arg.contains("-?"))
 						{
-							System.err.println("Cookie Cadger, version " + CookieCadgerUtils.version);
-							System.err.println("Example usage:\njava -jar CookieCadger.jar [--tshark=/usr/sbin/tshark] [--detection=on] [--demo=on] [--update=on]");
+							System.err.println("Cookie Cadger, version " + Utils.version);
+							System.err.println(	"Example usage:\njava -jar CookieCadger.jar \n" +
+									"\t--tshark=/usr/sbin/tshark\n" +
+									"\t--headless=on\n" +
+									"\t--detection=on\n" +
+									"\t--demo=on\n" +
+									"\t--update=on\n" +
+									"\t--dbengine=mysql\t(default is 'sqlite' for local, file-based storage)\n" +
+									"\t--dbhost=localhost\t(requires --dbengine=mysql)\n" +
+									"\t--dbuser=user\t\t(requires --dbengine=mysql)\n" +
+									"\t--dbpass=pass\t\t(requires --dbengine=mysql)\n" +
+									"\t--dbname=cadgerdata\t(requires --dbengine=mysql)\n +" +
+									"\t--dbrefreshrate=15\t(in seconds, requires --dbengine=mysql, requires --headless=off)"
+									);
 							return;
 						}
 					}
 				}
 				
-				try
-				{					
-					CookieCadgerFrame cookieCadgerFrame = new CookieCadgerFrame(args);
-					cookieCadgerFrame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
+				// Load settings from local config
+				Utils.loadApplicationPreferences();
+				Utils.handleProgramArguments(args);
+				
+				// Check if ability to even run a GUI exists
+				if (GraphicsEnvironment.isHeadless())
+				{
+					Utils.consoleMessage("No graphical environment found. Dropping to headless mode.");
+					Utils.programSettings.put("bHeadless", 1);
+				}
+				
+				// Shall we create a graphical or non-graphical session?
+				if((Integer) Utils.programSettings.get("bHeadless") == 1)
+				{
+					CookieCadgerHeadless cookieCadgerHeadless = new CookieCadgerHeadless();
+				}
+				else
+				{
+					try
+					{
+						CookieCadgerFrame cookieCadgerFrame = new CookieCadgerFrame();
+						cookieCadgerFrame.setVisible(true);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		});

@@ -15,7 +15,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 	// See also: https://github.com/JTracker/jissues/blob/master/libraries/joomla/session/session.php
 	if(cookies.indexOf("jpanesliders_") != -1)
 	{
-		var pageContent = Packages.com.cookiecadger.CookieCadgerUtils.readUrl("http://" + host + uri, userAgent, accept, cookies);
+		var pageContent = Packages.com.cookiecadger.Utils.readUrl("http://" + host + uri, userAgent, accept, cookies);
 		
 		if(pageContent.indexOf("Joomla!") != -1){
 			if(uri.indexOf("administrator") != -1){

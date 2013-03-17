@@ -27,7 +27,7 @@ public class DatabaseHandler
 	public DatabaseHandler() throws Exception
 	{
 		executionPath = System.getProperty("user.dir").replace("\\", "/");
-		dbEngine = (String)CookieCadgerUtils.programSettings.get("dbEngine");
+		dbEngine = (String)Utils.programSettings.get("dbEngine");
 		
 		if(dbEngine.equals("mysql"))
 		{
@@ -35,10 +35,10 @@ public class DatabaseHandler
 			
 			Class.forName("com.mysql.jdbc.Driver");
 			
-			String databaseHost = (String)CookieCadgerUtils.programSettings.get("databaseHost");
-			String databaseUser = (String)CookieCadgerUtils.programSettings.get("databaseUser");
-			String databasePass = (String)CookieCadgerUtils.programSettings.get("databasePass");
-			String databaseName = (String)CookieCadgerUtils.programSettings.get("databaseName");
+			String databaseHost = (String)Utils.programSettings.get("databaseHost");
+			String databaseUser = (String)Utils.programSettings.get("databaseUser");
+			String databasePass = (String)Utils.programSettings.get("databasePass");
+			String databaseName = (String)Utils.programSettings.get("databaseName");
 			dbInstance = DriverManager.getConnection("jdbc:mysql://" + databaseHost + "/" + databaseName + "?user="+ databaseUser +"&password=" + databasePass);
 		}
 		else
@@ -232,6 +232,7 @@ public class DatabaseHandler
 	    prep.setInt(5, requestID);
 	    prep.addBatch();
 	    prep.executeBatch();
+	    prep.close();
 	    
 	    Statement stat = dbInstance.createStatement();	    
 	    ResultSet rs = stat.executeQuery("select " + lastInsertIdFunction + ";");
@@ -240,7 +241,6 @@ public class DatabaseHandler
 	    int value = rs.getInt(lastInsertIdFunction);
 	    rs.close();
 	    stat.close();
-	    prep.close();
 	    
 	    return value;
 	}
@@ -306,15 +306,12 @@ public class DatabaseHandler
 	    return value;
 	}
 	
-	public String[] getMacs(boolean bOnlyHostsWithData, String searchString) throws SQLException
+	public String[] getMacs(String searchString) throws SQLException
 	{
 		String criteria = "1";
 		boolean bHasMacSearch = false;
 		
-		if(bOnlyHostsWithData)
-		{
-			criteria = "has_http_requests = 1";
-		}
+		criteria = "has_http_requests = 1";
 		
 		if(searchString != null && searchString.length() > 0)
 		{
@@ -358,6 +355,8 @@ public class DatabaseHandler
 	    
 	    rs.next();
 	    int numSessions = rs.getInt("r_count");
+	    rs.close();
+	    stat.close();
 	    
 	    EnhancedJListItem[] items = new EnhancedJListItem [numSessions];
 	    int i = 0;

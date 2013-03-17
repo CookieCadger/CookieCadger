@@ -21,7 +21,7 @@ import javax.swing.JTextField;
 import javax.swing.JCheckBox;
 import javax.swing.JSeparator;
 
-import com.cookiecadger.CookieCadgerUtils;
+import com.cookiecadger.Utils;
 
 public class SettingsDialog extends JDialog {
 
@@ -58,15 +58,14 @@ public class SettingsDialog extends JDialog {
 				okButton.addActionListener(new ActionListener() {
 					public void actionPerformed(ActionEvent arg0)
 					{
-						String dbEngine = ((CookieCadgerUtils.databaseEngineChoices)comboDatabaseEngine.getSelectedItem()).name().toLowerCase();
-						CookieCadgerUtils.programSettings.put("dbEngine", dbEngine);
-						CookieCadgerUtils.programSettings.put("databaseHost", txtDatabaseHost.getText());
-						CookieCadgerUtils.programSettings.put("databaseUser", txtDatabaseUser.getText());
-						CookieCadgerUtils.programSettings.put("databasePass", new String(txtDatabasePass.getPassword()));
-						CookieCadgerUtils.programSettings.put("databaseName", txtDatabaseName.getText());
-						CookieCadgerUtils.programSettings.put("databaseRefreshRate", txtDatabaseRefreshRate.getText());
-						
-						CookieCadgerUtils.saveApplicationPreferences();
+						String dbEngine = ((Utils.databaseEngineChoices)comboDatabaseEngine.getSelectedItem()).name().toLowerCase();
+						Utils.savePreference("dbEngine", dbEngine);
+						Utils.savePreference("databaseHost", txtDatabaseHost.getText());
+						Utils.savePreference("databaseUser", txtDatabaseUser.getText());
+						Utils.savePreference("databasePass", new String(txtDatabasePass.getPassword()));
+						Utils.savePreference("databaseName", txtDatabaseName.getText());
+						Utils.savePreference("databaseRefreshRate", txtDatabaseRefreshRate.getText());
+
 						JOptionPane.showMessageDialog(null, "You must restart Cookie Cadger for changes to take effect.");
 						
 						SettingsDialog.this.dispose();
@@ -98,7 +97,7 @@ public class SettingsDialog extends JDialog {
 		generalPanel.add(lblDefaultBrowser);
 		
 		JComboBox comboBrowser = new JComboBox();
-		comboBrowser.setModel(new DefaultComboBoxModel(CookieCadgerUtils.browserChoices.values()));
+		comboBrowser.setModel(new DefaultComboBoxModel(Utils.browserChoices.values()));
 		comboBrowser.setBounds(159, 56, 250, 24);
 		generalPanel.add(comboBrowser);
 		
@@ -124,7 +123,7 @@ public class SettingsDialog extends JDialog {
 		generalPanel.add(lblSessionDetection);
 		
 		JComboBox comboSessionDetection = new JComboBox();
-		comboSessionDetection.setModel(new DefaultComboBoxModel(CookieCadgerUtils.sessionDetectionChoices.values()));
+		comboSessionDetection.setModel(new DefaultComboBoxModel(Utils.sessionDetectionChoices.values()));
 		comboSessionDetection.setBounds(159, 92, 250, 24);
 		generalPanel.add(comboSessionDetection);
 		
@@ -147,12 +146,12 @@ public class SettingsDialog extends JDialog {
 			public void actionPerformed(ActionEvent e)
 			{
 				JComboBox source = ((JComboBox)e.getSource());
-				boolean bUsingExternal = !source.getSelectedItem().equals(CookieCadgerUtils.databaseEngineChoices.SQLITE);
+				boolean bUsingExternal = !source.getSelectedItem().equals(Utils.databaseEngineChoices.SQLITE);
 				
 				changeDatabaseFields(bUsingExternal);
 			}
 		});
-		comboDatabaseEngine.setModel(new DefaultComboBoxModel(CookieCadgerUtils.databaseEngineChoices.values()));
+		comboDatabaseEngine.setModel(new DefaultComboBoxModel(Utils.databaseEngineChoices.values()));
 		comboDatabaseEngine.setBounds(95, 8, 316, 24);
 		databasePanel.add(comboDatabaseEngine);
 		
@@ -219,13 +218,13 @@ public class SettingsDialog extends JDialog {
 		// =================================
 		
 		// Look up database engine preference and change combo
-		String dbEngine = (String)CookieCadgerUtils.programSettings.get("dbEngine");
-		for (CookieCadgerUtils.databaseEngineChoices enum_option : CookieCadgerUtils.databaseEngineChoices.values())
+		String dbEngine = (String)Utils.programSettings.get("dbEngine");
+		for (Utils.databaseEngineChoices enum_option : Utils.databaseEngineChoices.values())
 		{
 			if(enum_option.name().toLowerCase().equals(dbEngine.toLowerCase()))
 			{
 				comboDatabaseEngine.setSelectedItem(enum_option);
-				if(enum_option.equals(CookieCadgerUtils.databaseEngineChoices.SQLITE))
+				if(enum_option.equals(Utils.databaseEngineChoices.SQLITE))
 				{
 					changeDatabaseFields(false);
 				}
@@ -234,11 +233,11 @@ public class SettingsDialog extends JDialog {
 		}
 		
 		// Set up all other DB fields
-		txtDatabaseHost.setText((String)CookieCadgerUtils.programSettings.get("databaseHost"));
-		txtDatabaseUser.setText((String)CookieCadgerUtils.programSettings.get("databaseUser"));
-		txtDatabasePass.setText((String)CookieCadgerUtils.programSettings.get("databasePass"));
-		txtDatabaseName.setText((String)CookieCadgerUtils.programSettings.get("databaseName"));
-		txtDatabaseRefreshRate.setText(((Integer)CookieCadgerUtils.programSettings.get("databaseRefreshRate")).toString());
+		txtDatabaseHost.setText((String)Utils.programSettings.get("databaseHost"));
+		txtDatabaseUser.setText((String)Utils.programSettings.get("databaseUser"));
+		txtDatabasePass.setText((String)Utils.programSettings.get("databasePass"));
+		txtDatabaseName.setText((String)Utils.programSettings.get("databaseName"));
+		txtDatabaseRefreshRate.setText(((Integer)Utils.programSettings.get("databaseRefreshRate")).toString());
 	}
 	
 	private void changeDatabaseFields(boolean bUsingExternal)

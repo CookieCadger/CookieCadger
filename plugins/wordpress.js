@@ -12,7 +12,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 
 	if(cookies.indexOf("wordpress_logged_in") != -1)
 	{
-		var pageContent = Packages.com.cookiecadger.CookieCadgerUtils.readUrl("http://" + host + uri, userAgent, accept, cookies);
+		var pageContent = Packages.com.cookiecadger.Utils.readUrl("http://" + host + uri, userAgent, accept, cookies);
 
 		if(pageContent.indexOf('title="My Account"') != -1)
 		{

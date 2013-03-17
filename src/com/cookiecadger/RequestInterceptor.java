@@ -50,7 +50,7 @@ public class RequestInterceptor implements HttpRequestInterceptor
         if(randomization != null && acceptHeaders.length == 1) // It always should...
         {
         	request.removeHeaders("Accept");
-        	request.addHeader("Accept", acceptHeaders[0].getValue() + ", " + randomization);
+        	request.addHeader("Accept", acceptHeaders[0].getValue() + ";" + randomization);
         }
     }
     

@@ -20,7 +20,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 			facebookUserID = facebookUserID.substring(0, facebookUserID.indexOf(";"));
 		}
 
-		var apiQueryResult = Packages.com.cookiecadger.CookieCadgerUtils.readUrl("https://graph.facebook.com/" + facebookUserID, userAgent, accept, cookies);
+		var apiQueryResult = Packages.com.cookiecadger.Utils.readUrl("https://graph.facebook.com/" + facebookUserID, userAgent, accept, cookies);
 		var facebookProfile = JSON.parse(apiQueryResult);
 
 		description = "<html><font size=5>Facebook</font><br>" + facebookProfile.name;

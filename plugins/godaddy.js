@@ -14,7 +14,7 @@ function processRequest(host, uri, userAgent, accept, cookies)
 	// Note: Ironically GoDaddy mobile site uses HTTPS for login -> https://idp.godaddymobile.com
 	if(host.indexOf("godaddy") != -1 && cookies.indexOf("ShopperId1") != -1)
 	{
-		var pageContent = Packages.com.cookiecadger.CookieCadgerUtils.readUrl("http://" + host + uri, userAgent, accept, cookies);
+		var pageContent = Packages.com.cookiecadger.Utils.readUrl("http://" + host + uri, userAgent, accept, cookies);
 
 		if(pageContent.indexOf('My Account') != -1)
 		{
