@@ -84,10 +84,10 @@ public class DatabaseHandler
 	    }
 	    else
 	    {
-		    stat.executeUpdate("create table if not exists requests (id INTEGER AUTO_INCREMENT PRIMARY KEY, timerecorded INTEGER, uri VARCHAR(4096), useragent VARCHAR(256), referer VARCHAR(4096), cookies VARCHAR(4096), authorization VARCHAR(256), auth_basic VARCHAR(256), description VARCHAR(4096), domain_id INTEGER, client_id INTEGER);");
+		    stat.executeUpdate("create table if not exists requests (id INTEGER AUTO_INCREMENT PRIMARY KEY, timerecorded INTEGER, uri VARCHAR(4096), useragent VARCHAR(4096), referer VARCHAR(4096), cookies VARCHAR(4096), authorization VARCHAR(1024), auth_basic VARCHAR(1024), description VARCHAR(4096), domain_id INTEGER, client_id INTEGER);");
 		    stat.executeUpdate("create table if not exists clients (id INTEGER AUTO_INCREMENT PRIMARY KEY, mac_address VARCHAR(24), ipv4_address VARCHAR(16), ipv6_address VARCHAR(64), netbios_hostname VARCHAR(128), mdns_hostname VARCHAR(128), has_http_requests INTEGER);");
-		    stat.executeUpdate("create table if not exists domains (id INTEGER AUTO_INCREMENT PRIMARY KEY, name VARCHAR(128));");
-		    stat.executeUpdate("create table if not exists sessions (id INTEGER AUTO_INCREMENT PRIMARY KEY, user_token VARCHAR(128), description VARCHAR(512), profile_photo_url VARCHAR(4096), session_uri VARCHAR(4096), request_id INTEGER);");
+		    stat.executeUpdate("create table if not exists domains (id INTEGER AUTO_INCREMENT PRIMARY KEY, name VARCHAR(1024));");
+		    stat.executeUpdate("create table if not exists sessions (id INTEGER AUTO_INCREMENT PRIMARY KEY, user_token VARCHAR(1024), description VARCHAR(512), profile_photo_url VARCHAR(4096), session_uri VARCHAR(4096), request_id INTEGER);");
 	    }
 		
 	    stat.close();

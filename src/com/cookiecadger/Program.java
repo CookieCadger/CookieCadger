@@ -70,6 +70,7 @@ public class Program
 							System.err.println(	"Example usage:\njava -jar CookieCadger.jar \n" +
 									"\t--tshark=/usr/sbin/tshark\n" +
 									"\t--headless=on\n" +
+									"\t--interfacenum=2\t(requires --headless=on)\n" +
 									"\t--detection=on\n" +
 									"\t--demo=on\n" +
 									"\t--update=on\n" +
@@ -77,7 +78,7 @@ public class Program
 									"\t--dbhost=localhost\t(requires --dbengine=mysql)\n" +
 									"\t--dbuser=user\t\t(requires --dbengine=mysql)\n" +
 									"\t--dbpass=pass\t\t(requires --dbengine=mysql)\n" +
-									"\t--dbname=cadgerdata\t(requires --dbengine=mysql)\n +" +
+									"\t--dbname=cadgerdata\t(requires --dbengine=mysql)\n" +
 									"\t--dbrefreshrate=15\t(in seconds, requires --dbengine=mysql, requires --headless=off)"
 									);
 							return;
@@ -93,11 +94,11 @@ public class Program
 				if (GraphicsEnvironment.isHeadless())
 				{
 					Utils.consoleMessage("No graphical environment found. Dropping to headless mode.");
-					Utils.programSettings.put("bHeadless", 1);
+					Utils.programSettings.put("bHeadless", true);
 				}
 				
 				// Shall we create a graphical or non-graphical session?
-				if((Integer) Utils.programSettings.get("bHeadless") == 1)
+				if((Boolean) Utils.programSettings.get("bHeadless"))
 				{
 					CookieCadgerHeadless cookieCadgerHeadless = new CookieCadgerHeadless();
 				}

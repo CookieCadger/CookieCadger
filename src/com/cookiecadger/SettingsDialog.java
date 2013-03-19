@@ -2,6 +2,7 @@ package com.cookiecadger;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.Font;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -28,9 +29,10 @@ public class SettingsDialog extends JDialog {
 	private final JPanel contentPanel = new JPanel();
 	private JPanel generalPanel, databasePanel;
 	private JTabbedPane tabbedPane;
-	private JTextField txtTsharkPath;
+	private EnhancedJTextField txtTsharkPath;
 	private JTextField txtDatabaseHost, txtDatabaseUser, txtDatabaseName, txtDatabaseRefreshRate;
-	private JComboBox comboDatabaseEngine;
+	private JComboBox comboBrowser, comboSessionDetection, comboDatabaseEngine;
+	private JCheckBox chckbxAllowUpdates, chckbxEnableDemoMode;
 	private JPasswordField txtDatabasePass;
 	private JLabel lblDatabaseHost, lblDatabaseUser, lblDatabasePass, lblDatabaseName, lblDatabaseRefreshRate;
 
@@ -45,47 +47,59 @@ public class SettingsDialog extends JDialog {
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		getContentPane().add(contentPanel, BorderLayout.CENTER);
 		contentPanel.setLayout(new GridLayout(1, 0, 0, 0));
-		{
-			tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-			contentPanel.add(tabbedPane);
-		}
-		{
-			JPanel buttonPane = new JPanel();
-			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
-			getContentPane().add(buttonPane, BorderLayout.SOUTH);
-			{
-				JButton okButton = new JButton("Save");
-				okButton.addActionListener(new ActionListener() {
-					public void actionPerformed(ActionEvent arg0)
-					{
-						String dbEngine = ((Utils.databaseEngineChoices)comboDatabaseEngine.getSelectedItem()).name().toLowerCase();
-						Utils.savePreference("dbEngine", dbEngine);
-						Utils.savePreference("databaseHost", txtDatabaseHost.getText());
-						Utils.savePreference("databaseUser", txtDatabaseUser.getText());
-						Utils.savePreference("databasePass", new String(txtDatabasePass.getPassword()));
-						Utils.savePreference("databaseName", txtDatabaseName.getText());
-						Utils.savePreference("databaseRefreshRate", txtDatabaseRefreshRate.getText());
 
-						JOptionPane.showMessageDialog(null, "You must restart Cookie Cadger for changes to take effect.");
-						
-						SettingsDialog.this.dispose();
-					}
-				});
-				okButton.setActionCommand("OK");
-				buttonPane.add(okButton);
-				getRootPane().setDefaultButton(okButton);
-			}
+		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		contentPanel.add(tabbedPane);
+
+		JPanel buttonPane = new JPanel();
+		buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		getContentPane().add(buttonPane, BorderLayout.SOUTH);
+
+		JButton okButton = new JButton("Save");
+		okButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0)
 			{
-				JButton cancelButton = new JButton("Cancel");
-				cancelButton.addActionListener(new ActionListener() {
-					public void actionPerformed(ActionEvent e) {
-						SettingsDialog.this.dispose();
-					}
-				});
-				cancelButton.setActionCommand("Cancel");
-				buttonPane.add(cancelButton);
+				String dbEngine = ((Utils.databaseEngineChoices)comboDatabaseEngine.getSelectedItem()).name().toLowerCase();
+				Utils.savePreference("dbEngine", dbEngine);
+				Utils.savePreference("databaseHost", txtDatabaseHost.getText());
+				Utils.savePreference("databaseUser", txtDatabaseUser.getText());
+				Utils.savePreference("databasePass", new String(txtDatabasePass.getPassword()));
+				Utils.savePreference("databaseName", txtDatabaseName.getText());
+				Utils.savePreference("databaseRefreshRate", txtDatabaseRefreshRate.getText());
+				
+				Utils.savePreference("tsharkPath", txtTsharkPath.getText());
+				
+				String preferredBrowser = ((Utils.browserChoices)comboBrowser.getSelectedItem()).name().toLowerCase();
+				Utils.savePreference("preferredBrowser", preferredBrowser);
+				
+				String bSessionDetection = ((Utils.sessionDetectionChoices)comboSessionDetection.getSelectedItem()).name().toLowerCase();
+				if(bSessionDetection.equals("prompt"))
+					Utils.savePreference("bSessionDetection", -1);
+				else if(bSessionDetection.equals("yes"))
+					Utils.savePreference("bSessionDetection", 1);
+				else
+					Utils.savePreference("bSessionDetection", 0);
+				
+				Utils.savePreference("bUseDemoMode", chckbxEnableDemoMode.isSelected());
+				Utils.savePreference("bCheckForUpdates", chckbxAllowUpdates.isSelected());
+
+				JOptionPane.showMessageDialog(null, "You must restart Cookie Cadger for changes to take effect.");
+				
+				SettingsDialog.this.dispose();
 			}
-		}
+		});
+		okButton.setActionCommand("OK");
+		buttonPane.add(okButton);
+		getRootPane().setDefaultButton(okButton);
+
+		JButton cancelButton = new JButton("Cancel");
+		cancelButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				SettingsDialog.this.dispose();
+			}
+		});
+		cancelButton.setActionCommand("Cancel");
+		buttonPane.add(cancelButton);
 		
 		generalPanel = new JPanel();
 		generalPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -96,7 +110,7 @@ public class SettingsDialog extends JDialog {
 		lblDefaultBrowser.setBounds(12, 60, 140, 15);
 		generalPanel.add(lblDefaultBrowser);
 		
-		JComboBox comboBrowser = new JComboBox();
+		comboBrowser = new JComboBox();
 		comboBrowser.setModel(new DefaultComboBoxModel(Utils.browserChoices.values()));
 		comboBrowser.setBounds(159, 56, 250, 24);
 		generalPanel.add(comboBrowser);
@@ -105,7 +119,7 @@ public class SettingsDialog extends JDialog {
 		lblPathTothsark.setBounds(12, 6, 180, 15);
 		generalPanel.add(lblPathTothsark);
 		
-		txtTsharkPath = new JTextField();
+		txtTsharkPath = new EnhancedJTextField();
 		txtTsharkPath.setBounds(12, 24, 400, 19);
 		generalPanel.add(txtTsharkPath);
 		txtTsharkPath.setColumns(10);
@@ -114,20 +128,20 @@ public class SettingsDialog extends JDialog {
 		separator.setBounds(0, 126, 434, 2);
 		generalPanel.add(separator);
 		
-		JCheckBox chckbxAllowUpdates = new JCheckBox("Allow automatic checking for software updates?");
-		chckbxAllowUpdates.setBounds(12, 136, 400, 23);
-		generalPanel.add(chckbxAllowUpdates);
-		
 		JLabel lblSessionDetection = new JLabel("Session detection:");
 		lblSessionDetection.setBounds(12, 96, 140, 15);
 		generalPanel.add(lblSessionDetection);
 		
-		JComboBox comboSessionDetection = new JComboBox();
+		comboSessionDetection = new JComboBox();
 		comboSessionDetection.setModel(new DefaultComboBoxModel(Utils.sessionDetectionChoices.values()));
 		comboSessionDetection.setBounds(159, 92, 250, 24);
 		generalPanel.add(comboSessionDetection);
 		
-		JCheckBox chckbxEnableDemoMode = new JCheckBox("Enable 'demo mode' (requires session detection)");
+		chckbxAllowUpdates = new JCheckBox("Allow automatic checking for software updates?");
+		chckbxAllowUpdates.setBounds(12, 136, 400, 23);
+		generalPanel.add(chckbxAllowUpdates);
+		
+		chckbxEnableDemoMode = new JCheckBox("Enable 'demo mode' (requires session detection)");
 		chckbxEnableDemoMode.setBounds(12, 161, 400, 23);
 		generalPanel.add(chckbxEnableDemoMode);
 		
@@ -218,7 +232,7 @@ public class SettingsDialog extends JDialog {
 		// =================================
 		
 		// Look up database engine preference and change combo
-		String dbEngine = (String)Utils.programSettings.get("dbEngine");
+		String dbEngine = Utils.getPreference("dbEngine", "sqlite");
 		for (Utils.databaseEngineChoices enum_option : Utils.databaseEngineChoices.values())
 		{
 			if(enum_option.name().toLowerCase().equals(dbEngine.toLowerCase()))
@@ -233,11 +247,45 @@ public class SettingsDialog extends JDialog {
 		}
 		
 		// Set up all other DB fields
-		txtDatabaseHost.setText((String)Utils.programSettings.get("databaseHost"));
-		txtDatabaseUser.setText((String)Utils.programSettings.get("databaseUser"));
-		txtDatabasePass.setText((String)Utils.programSettings.get("databasePass"));
-		txtDatabaseName.setText((String)Utils.programSettings.get("databaseName"));
-		txtDatabaseRefreshRate.setText(((Integer)Utils.programSettings.get("databaseRefreshRate")).toString());
+		txtDatabaseHost.setText(Utils.getPreference("databaseHost", ""));
+		txtDatabaseUser.setText(Utils.getPreference("databaseUser", ""));
+		txtDatabasePass.setText(Utils.getPreference("databasePass", ""));
+		txtDatabaseName.setText(Utils.getPreference("databaseName", ""));
+		txtDatabaseRefreshRate.setText((Utils.getPreference("databaseRefreshRate", 15)).toString());
+		
+		// Look up browser preference and change combo
+		String preferredBrowser = Utils.getPreference("preferredBrowser", "firefox");
+		for (Utils.browserChoices enum_option : Utils.browserChoices.values())
+		{
+			if(enum_option.name().toLowerCase().equals(preferredBrowser.toLowerCase()))
+			{
+				comboBrowser.setSelectedItem(enum_option);
+				break;
+			}
+		}
+		
+		// Look up session detection and change combo
+		int bSessionDetection = Utils.getPreference("bSessionDetection", -1);
+		
+		if(bSessionDetection == -1)
+			comboSessionDetection.setSelectedItem(Utils.sessionDetectionChoices.PROMPT);
+		else if(bSessionDetection == 1)
+			comboSessionDetection.setSelectedItem(Utils.sessionDetectionChoices.YES);
+		else
+			comboSessionDetection.setSelectedItem(Utils.sessionDetectionChoices.NO);
+		
+		// Set up display of tshark path
+		String tsharkPathSaved = Utils.getPreference("tsharkPath", "");
+		txtTsharkPath.setText(tsharkPathSaved);
+		
+		if(tsharkPathSaved.length() == 0)
+			txtTsharkPath.setPlaceholder((String) Utils.programSettings.get("tsharkPath"), new Font("SansSerif", Font.BOLD, 12));
+		
+		// Automatic update checking?
+		chckbxAllowUpdates.setSelected((Boolean) Utils.getPreference("bCheckForUpdates", true));
+		
+		// Demo mode?
+		chckbxEnableDemoMode.setSelected((Boolean) Utils.getPreference("bUseDemoMode", false));
 	}
 	
 	private void changeDatabaseFields(boolean bUsingExternal)

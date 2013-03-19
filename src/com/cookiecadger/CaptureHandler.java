@@ -47,7 +47,7 @@ public class CaptureHandler
 		if(pcapFile == null || pcapFile.isEmpty())
 		{			
 			Utils.consoleMessage("Opening '" + deviceName.get(ethDevNumber) + "' for traffic capture.");
-			pb = new ProcessBuilder(new String[] { Utils.pathToTshark, "-i", deviceName.get(ethDevNumber), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
+			pb = new ProcessBuilder(new String[] { (String) Utils.programSettings.get("tsharkPath"), "-i", deviceName.get(ethDevNumber), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
 			pb.redirectErrorStream(true);
 			deviceCaptureProcess.set(ethDevNumber, pb.start());
 			pw = new ProcessWatcher(deviceCaptureProcess.get(ethDevNumber));
@@ -56,7 +56,7 @@ public class CaptureHandler
 		else
 		{
 			Utils.consoleMessage("Opening '" + pcapFile + "' for traffic capture.");
-			pb = new ProcessBuilder(new String[] { Utils.pathToTshark, "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
+			pb = new ProcessBuilder(new String[] { (String) Utils.programSettings.get("tsharkPath"), "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
 			pb.redirectErrorStream(true);
 			proc = pb.start();
 			pw = new ProcessWatcher(proc);
@@ -458,7 +458,7 @@ public class CaptureHandler
 					    			// Session created, check to see if we should auto-load it as well.
 					    			if(((JCheckBox)Utils.cookieCadgerFrame.getComponentByName("chckbxAutomaticallyLoadSessions")).isSelected())
 					    			{						    							
-					    				Utils.cookieCadgerFrame.loadRequestIntoBrowser(requestHost, requestUri, userAgent, refererUri, cookieData, authorization);
+					    				BrowserHandler.loadRequestIntoBrowser(requestHost, requestUri, userAgent, refererUri, cookieData, authorization);
 					    			}
 				    			}
 					    		
@@ -527,36 +527,44 @@ public class CaptureHandler
 	{
 		File tshark;
 		
-		if(Utils.pathToTshark == null || Utils.pathToTshark.isEmpty()) // no program arg specified
+		String tsharkPath = (String) Utils.programSettings.get("tsharkPath");
+		
+		if(tsharkPath.isEmpty()) // no program argument or preference for tshark, try to find it
 		{
 			// Get tshark location by checking likely Linux, Windows, and Mac paths
-			
 			for(String path : Utils.knownTsharkLocations)
 			{
 				if(new File(path).exists())
 				{
 					Utils.consoleMessage("tshark located at " + path);
-					Utils.pathToTshark = path;
+					tsharkPath = path;
+					
+					// Found it
+					Utils.programSettings.put("tsharkPath", path);
 					break;
 				}
 			}
 		}
-		else // program arg specified, check that tshark exists there
+		else // tshark path specified, check that tshark actually exists there
 		{
-			if(new File(Utils.pathToTshark).exists())
+			if(new File(tsharkPath).exists())
 			{
-				Utils.consoleMessage("tshark specified at " + Utils.pathToTshark);
+				Utils.consoleMessage("tshark specified at " + tsharkPath);
 			}
 			else
 			{
-				tsharkNotice("You specified a path to 'tshark' as an argument when starting this program, but the given path is invalid.");
-				Utils.pathToTshark = null; // Empty the user-specified value
+				tsharkNotice("You specified a path to 'tshark', but the given path is invalid.");
+				tsharkPath = ""; // Empty the user-specified value
+				
+				// Clear out the saved value, which doesn't exist
+				Utils.savePreference("tsharkPath", "");
+				Utils.programSettings.put("tsharkPath", "");
 			}
 		}
 		
-		if(Utils.pathToTshark == null || Utils.pathToTshark.isEmpty())
+		if(tsharkPath.isEmpty())
 		{
-			tsharkNotice("Error: couldn't find 'tshark' (part of the 'Wireshark' suite). This software cannot capture or analyze packets without it.\nYou can still load previously saved sessions for replaying in the browser, but be aware you might encounter errors.\n\nYou can manually specify the location to 'tshark' as a program argument.\n\nUsage:\njava -jar CookieCadger.jar --tshark=<full path to tshark>");
+			tsharkNotice("Error: couldn't find 'tshark' (part of the 'Wireshark' suite). This software cannot capture or analyze packets without it.\nYou can still load previously saved sessions for replaying in the browser, but be aware you might encounter errors.\n\nYou can manually specify the location to 'tshark' in the 'Program Settings' area, or as a program argument.\n\nUsage:\njava -jar CookieCadger.jar --tshark=<full path to tshark>");
 		}
 		else
 		{
@@ -564,7 +572,7 @@ public class CaptureHandler
 
 			String line = "";
 			try {
-				ProcessBuilder pb = new ProcessBuilder(new String[] { Utils.pathToTshark, "-D" } );
+				ProcessBuilder pb = new ProcessBuilder(new String[] { tsharkPath, "-D" } );
 				pb.redirectErrorStream(true);
 				Process proc = pb.start();
 				InputStream is = proc.getInputStream();

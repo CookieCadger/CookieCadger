@@ -26,7 +26,6 @@ public class Utils
 	public static final String version = "1.00";
 	public static String executionPath = System.getProperty("user.dir").replace("\\", "/");
 	public static HashMap<String, Object> programSettings;
-	public static String pathToTshark = null;
 	private static Preferences prefs = null;
 	
 	private static Random rand = new Random();
@@ -65,7 +64,7 @@ public class Utils
 	}
 	
 	public static enum databaseEngineChoices {
-	    SQLITE("SQLite"), MYSQL("MySQL (works with multiple instances)");
+	    SQLITE("SQLite (local and high performance)"), MYSQL("MySQL (works with multiple instances)");
 	    private final String display;
 	    private databaseEngineChoices (String s) {
 	        display = s;
@@ -98,11 +97,17 @@ public class Utils
 		programSettings.put("databaseRefreshRate", prefs.getInt("databaseRefreshRate", 15));
 		
 		// Program preferences
-		// -1 = undefined, 0 = no, 1 = yes
+		programSettings.put("tsharkPath", prefs.get("tsharkPath", ""));
+		programSettings.put("interfaceNum", prefs.getInt("interfaceNum", -1));
+		programSettings.put("preferredBrowser", prefs.get("preferredBrowser", "firefox"));
+		
+		// Session detection? -1 = undefined, 0 = no, 1 = yes
 		programSettings.put("bSessionDetection", prefs.getInt("bSessionDetection", -1));
-		programSettings.put("bUseDemoMode", prefs.getInt("bUseDemoMode", -1));
-		programSettings.put("bCheckForUpdates", prefs.getInt("bCheckForUpdates", -1));
-		programSettings.put("bHeadless", prefs.getInt("bHeadless", 0));
+		
+		// Everything else
+		programSettings.put("bUseDemoMode", prefs.getBoolean("bUseDemoMode", false));
+		programSettings.put("bCheckForUpdates", prefs.getBoolean("bCheckForUpdates", true));
+		programSettings.put("bHeadless", prefs.getBoolean("bHeadless", false));
 	}
 	
 	public static void savePreference(String key, Object value)
@@ -119,6 +124,21 @@ public class Utils
 	    {
 	    	prefs.putInt(key, (Integer)value);
 	    }
+	}
+	
+	public static String getPreference(String key, String defaultValue)
+	{
+		return prefs.get(key, defaultValue);
+	}
+	
+	public static Integer getPreference(String key, Integer defaultValue)
+	{
+		return prefs.getInt(key, defaultValue);
+	}
+	
+	public static boolean getPreference(String key, Boolean defaultValue)
+	{
+		return prefs.getBoolean(key, defaultValue);
 	}
 	
 	public static void initializeDatabase()
@@ -328,12 +348,12 @@ public class Utils
 					
 					if(value.equals("on"))
 					{
-						Utils.programSettings.put("bHeadless", 1);
+						Utils.programSettings.put("bHeadless", true);
 						filledRequirements = true;
 					}
 					else if (value.equals("off"))
 					{
-						Utils.programSettings.put("bHeadless", 0);
+						Utils.programSettings.put("bHeadless", false);
 						filledRequirements = true;
 					}
 				}
@@ -341,7 +361,26 @@ public class Utils
 				if(!filledRequirements)
 				{
 					bTerminate = true;
-					System.err.println("--headless (Headless Operation) requires an 'on' or 'off' value.");
+					System.err.println("--headless (command-line operation without a GUI) requires an 'on' or 'off' value.");
+				}
+			}
+			else if (arg.contains("interfacenum"))
+			{
+				boolean filledRequirements = false;
+				if(arg.contains("interfacenum="))
+				{
+					String value = arg.split("=")[1];
+					if(value.length() > 0)
+					{
+						Utils.programSettings.put("interfaceNum", new Integer(value));
+						filledRequirements = true;
+					}
+				}
+
+				if(!filledRequirements)
+				{
+					System.err.println("--interfacenum (specification of capture interface) requires an interface number.");
+					bTerminate = true;
 				}
 			}
 			else if (arg.contains("tshark"))
@@ -353,7 +392,8 @@ public class Utils
 					if(value.length() > 0)
 					{
 						filledRequirements = true;
-						Utils.pathToTshark = value;
+						programSettings.put("tsharkPath", prefs.get("tsharkPath", value));
+						
 					}
 				}
 
@@ -385,7 +425,7 @@ public class Utils
 				if(!filledRequirements)
 				{
 					bTerminate = true;
-					System.err.println("--detection (Session Detection) requires an 'on' or 'off' value.");
+					System.err.println("--detection (session detection) requires an 'on' or 'off' value.");
 				}
 			}
 			else if (arg.contains("update"))
@@ -410,7 +450,7 @@ public class Utils
 				if(!filledRequirements)
 				{
 					bTerminate = true;
-					System.err.println("--detection (Session Detection) requires an 'on' or 'off' value.");
+					System.err.println("--update (automatic software update checks) requires an 'on' or 'off' value.");
 				}
 			}
 			else if (arg.contains("demo"))
@@ -460,7 +500,7 @@ public class Utils
 				if(!filledRequirements)
 				{
 					bTerminate = true;
-					System.err.println("--dbengine (Database Engine) requires either 'sqlite' or 'mysql' as its value.");
+					System.err.println("--dbengine (database engine) requires either 'sqlite' or 'mysql' as its value.");
 				}
 			}
 			else if (arg.contains("dbhost"))
@@ -478,7 +518,7 @@ public class Utils
 
 				if(!filledRequirements)
 				{
-					System.err.println("--dbhost requires a hostname for the database server.");
+					System.err.println("--dbhost (database hostname) requires a hostname for the database server.");
 					bTerminate = true;
 				}
 			}
@@ -497,7 +537,7 @@ public class Utils
 
 				if(!filledRequirements)
 				{
-					System.err.println("--dbuser requires a user name for the database server.");
+					System.err.println("--dbuser (database user) requires a user name for the database server.");
 					bTerminate = true;
 				}
 			}
@@ -516,7 +556,7 @@ public class Utils
 
 				if(!filledRequirements)
 				{
-					System.err.println("--dbpass requires a password for the database server.");
+					System.err.println("--dbpass (database password) requires a password for the database server.");
 					bTerminate = true;
 				}
 			}
@@ -535,7 +575,7 @@ public class Utils
 
 				if(!filledRequirements)
 				{
-					System.err.println("--dbname requires a database name for the database server.");
+					System.err.println("--dbname (database name) requires a database name for the database server.");
 					bTerminate = true;
 				}
 			}
@@ -554,7 +594,7 @@ public class Utils
 
 				if(!filledRequirements)
 				{
-					System.err.println("--dbrefreshrate requires a refresh rate (in seconds) for updating the GUI from the database server.");
+					System.err.println("--dbrefreshrate (database automatic refresh interval) requires a refresh rate (in seconds) for updating the GUI from the database server.");
 					bTerminate = true;
 				}
 			}

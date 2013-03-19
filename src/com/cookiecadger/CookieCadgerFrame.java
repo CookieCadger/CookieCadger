@@ -65,6 +65,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.io.File;
@@ -74,6 +75,7 @@ import org.browsermob.proxy.ProxyServer;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Proxy;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
@@ -88,16 +90,11 @@ public class CookieCadgerFrame extends JFrame
 	public EnhancedJList clientsList, domainsList, requestsList, sessionsList;
 	public EnhancedJTextField txtClientSearch, txtDomainSearch, txtRequestSearch;
 	private JTextArea txtConsole;
-	private JScrollPane consoleScrollPane;
+	public JScrollPane consoleScrollPane;
 	private JTabbedPane tabbedPane;
-	private JProgressBar loadingRequestProgressBar;
+	public JProgressBar loadingRequestProgressBar;
 	private HashMap<String, Component> componentMap; // Cheers to Jesse Strickland (stackoverflow.com/questions/4958600/get-a-swing-component-by-name)
 	private JPopupMenu clientsPopup, requestsPopup, sessionsPopup;
-	
-	private WebDriver driver = null;
-	private ProxyServer server = null;
-	private Proxy proxy = null;
-	private RequestInterceptor requestIntercept;
 	private CaptureHandler captureHandler;
 
 	public void addConsoleText(String text)
@@ -600,92 +597,6 @@ public class CookieCadgerFrame extends JFrame
 		return null;
 	}
 	
-	public void loadRequestIntoBrowser(String domain, String uri, String useragent, String referer, String cookies, String authorization)
-	{
-		consoleScrollPane.setVisible(false);
-		
-		loadingRequestProgressBar.setString("Loading request into browser, please wait...");
-		loadingRequestProgressBar.setVisible(true);
-	    
-		if(server == null)
-		{
-			server = new ProxyServer(7878);
-
-	        requestIntercept = new RequestInterceptor();
-	        requestIntercept.setRandomization(Integer.toString(Utils.getLocalRandomization()));
-	        
-	        try {
-				server.start();
-				server.addRequestInterceptor(requestIntercept);
-				proxy = server.seleniumProxy(); // Set HTTP proxy
-				proxy.setSslProxy(null); // Unset SSL entirely
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			}	
-		}
-
-		// Ask to get page title
-		// If none, this will Exception and set driver to null as necessary
-		try
-		{
-			driver.getTitle();
-		}
-		catch (Exception e)
-		{
-			driver = null;
-		}
-		
-		if(driver == null)
-		{	        
-			// configure it as a desired capability
-			DesiredCapabilities capabilities = new DesiredCapabilities();
-			capabilities.setCapability(CapabilityType.PROXY, proxy);
-			
-			driver = new FirefoxDriver(capabilities);
-		}
-		else
-		{
-			// Everything is already set to go, just clear the proxy settings
-			requestIntercept.clear();
-		}
-		
-        if(!cookies.isEmpty())
-        {
-        	requestIntercept.setCookies(cookies);
-        }
-        
-        if(!authorization.isEmpty())
-        {
-        	requestIntercept.setAuthorization(authorization);
-        }
-        
-        if(useragent.isEmpty())
-        {
-        	// None specifically specified, so load from Firefox via the WebDriver
-        	// (Without this BrowserMob modifies it and adds a unique tag)
-        	useragent = (String) ((JavascriptExecutor) driver).executeScript("return navigator.userAgent;");
-        }
-        requestIntercept.setUserAgent(useragent);
-        
-        if(!referer.isEmpty())
-        {
-        	requestIntercept.setReferer(referer);
-        }
-
-        try
-        {
-        	driver.get("http://" + domain + uri);
-        }
-        catch (Exception e)
-        {
-        	// Nothing
-        }
-        
-        loadingRequestProgressBar.setVisible(false);
-        consoleScrollPane.setVisible(true);
-	}
-	
 	private void prepareToCloseApplication()
 	{
 		if(Utils.dbEngine.equals("sqlite"))
@@ -705,17 +616,7 @@ public class CookieCadgerFrame extends JFrame
 			}
 		}
 		
-		// Get the WebDriver fully unloaded
-		try
-		{
-			driver.close();
-		}
-		catch (Exception ex)
-		{}
-		finally
-		{
-			driver = null;
-		}
+		BrowserHandler.closeConnections();
 		
 		try
 		{
@@ -884,14 +785,7 @@ public class CookieCadgerFrame extends JFrame
 			JCheckBox chckbxAutomaticallyLoadSessions = new JCheckBox("Automatically Load Sessions Into Browser (Demo Mode)");
 			chckbxAutomaticallyLoadSessions.setBounds(12, 332, 420, 25);
 			chckbxAutomaticallyLoadSessions.setName("chckbxAutomaticallyLoadSessions");
-			
-			if((Integer) Utils.programSettings.get("bUseDemoMode") > -1)
-			{
-				int demoMode = (Integer) Utils.programSettings.get("bUseDemoMode");
-				
-				if(demoMode == 1)
-					chckbxAutomaticallyLoadSessions.setSelected(true);
-			}
+			chckbxAutomaticallyLoadSessions.setSelected((Boolean) Utils.programSettings.get("bUseDemoMode"));
 			sessionsPanel.add(chckbxAutomaticallyLoadSessions);
 			
 			JButton btnLoadSelectedSession = new JButton("Load Selected Session");
@@ -935,7 +829,7 @@ public class CookieCadgerFrame extends JFrame
 									uri = resultMap.get("uri");
 								}
 
-								loadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
+								BrowserHandler.loadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
 							} catch (Exception e)
 							{
 								e.printStackTrace();
@@ -1264,30 +1158,37 @@ public class CookieCadgerFrame extends JFrame
 	    });
 	    
 		JButton btnLoadDomainCookies = new JButton("Load Domain Cookies");
-		btnLoadDomainCookies.setBounds(386, 342, 234, 25);
+		btnLoadDomainCookies.setFont(new Font("Dialog", Font.BOLD, 10));
+		btnLoadDomainCookies.setBounds(386, 342, 155, 25);
 		requestsPanel.add(btnLoadDomainCookies);
 		
-		JButton btnReplayRequest = new JButton("Replay This Request");
-		btnReplayRequest.setBounds(633, 342, 234, 25);
+		JButton btnReplayRequest = new JButton("Replay Request");
+		btnReplayRequest.setFont(new Font("Dialog", Font.BOLD, 10));
+		btnReplayRequest.setBounds(553, 342, 126, 25);
 		requestsPanel.add(btnReplayRequest);
+		
+		JButton btnModifyReplay = new JButton("Modify & Replay Request");
+		btnModifyReplay.setFont(new Font("Dialog", Font.BOLD, 10));
+		btnModifyReplay.setBounds(691, 342, 175, 25);
+		requestsPanel.add(btnModifyReplay);
 		
 		txtClientSearch = new EnhancedJTextField();
 		txtClientSearch.setName("txtClientSearch");
-		txtClientSearch.setPlaceholder("Filter MACs");
+		txtClientSearch.setPlaceholder("Filter MACs", new Font("SansSerif", Font.BOLD, 10));
 		txtClientSearch.setBounds(22, 8, 152, 19);
 		requestsPanel.add(txtClientSearch);
 		txtClientSearch.setColumns(10);
 		
 		txtDomainSearch = new EnhancedJTextField();
 		txtDomainSearch.setName("txtDomainSearch");
-		txtDomainSearch.setPlaceholder("Filter Domains");
+		txtDomainSearch.setPlaceholder("Filter Domains", new Font("SansSerif", Font.BOLD, 10));
 		txtDomainSearch.setBounds(179, 8, 201, 19);
 		requestsPanel.add(txtDomainSearch);
 		txtDomainSearch.setColumns(10);
 		
 		txtRequestSearch = new EnhancedJTextField();
 		txtRequestSearch.setName("txtRequestSearch");
-		txtRequestSearch.setPlaceholder("Filter Requests");
+		txtRequestSearch.setPlaceholder("Filter Requests", new Font("SansSerif", Font.BOLD, 10));
 		txtRequestSearch.setBounds(386, 8, 482, 19);
 		requestsPanel.add(txtRequestSearch);
 		txtRequestSearch.setColumns(10);
@@ -1546,7 +1447,7 @@ public class CookieCadgerFrame extends JFrame
 								String authorization = resultMap.get("authorization");
 								String cookies = resultMap.get("cookies");
 								
-								loadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
+								BrowserHandler.loadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
 							} catch (SQLException e) {
 								e.printStackTrace();
 							}
@@ -1559,7 +1460,6 @@ public class CookieCadgerFrame extends JFrame
 				}
 			}
 		});
-
 
 		btnReplayRequest.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0)
@@ -1586,7 +1486,47 @@ public class CookieCadgerFrame extends JFrame
 								String authorization = resultMap.get("authorization");
 								String cookies = resultMap.get("cookies");
 								
-								loadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
+								BrowserHandler.loadRequestIntoBrowser(domain, uri, useragent, referer, cookies, authorization);
+							} catch (SQLException e) {
+								e.printStackTrace();
+							}
+			        		
+			                return null;
+			            }
+			        };
+			        
+			        loadRequestWorker.execute();
+				}
+			}
+		});
+
+		btnModifyReplay.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0)
+			{
+				if(!requestsList.isSelectionEmpty())
+				{
+			    	SwingWorker<?, ?> loadRequestWorker = new SwingWorker<Object, Object>() {            
+			        	@Override            
+			            public Object doInBackground()
+			        	{
+							EnhancedJListItem listItem = (EnhancedJListItem)requestsList.getSelectedValue();
+							int requestID = listItem.getID();
+							
+							try {
+								int domainID = Utils.dbInstance.getIntegerValue("requests", "domain_id", "id", Integer.toString(requestID));
+								String domain = Utils.dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
+								
+								String[] fields = new String[] { "uri", "useragent", "referer", "authorization", "cookies" };
+								HashMap<String,String> resultMap = Utils.dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
+								
+								String uri = resultMap.get("uri");
+								String useragent = resultMap.get("useragent");
+								String referer = resultMap.get("referer");
+								String authorization = resultMap.get("authorization");
+								String cookies = resultMap.get("cookies");
+								
+								ReplayDialog replayInterface = new ReplayDialog(domain, uri, useragent, referer, cookies, authorization);
+								replayInterface.setVisible(true);
 							} catch (SQLException e) {
 								e.printStackTrace();
 							}
@@ -1686,7 +1626,7 @@ public class CookieCadgerFrame extends JFrame
 		
 		interfaceListComboBox.setSelectedIndex(itemToSelect);
 		
-		if((Integer) Utils.programSettings.get("bCheckForUpdates") == 1)
+		if((Boolean) Utils.programSettings.get("bCheckForUpdates"))
 		{
 			// Check for software update
 	    	SwingWorker<?, ?> updateWorker = new SwingWorker<Object, Object>() {            

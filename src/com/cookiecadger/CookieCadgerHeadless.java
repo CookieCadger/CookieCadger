@@ -27,8 +27,17 @@ public class CookieCadgerHeadless
 		// Get capture devices
 		captureHandler.initializeDeviceList();
 		
-		Utils.consoleMessage("Please enter the ID of the device you wish to capture from:");
-		int captureDevice = (systemInput.nextInt() - 1); // Adjusting for ComSci counting
+		int captureDevice = -1;
+		// Check if interface was specified
+		if((Integer) Utils.programSettings.get("interfaceNum") != -1)
+		{
+			captureDevice = (Integer) Utils.programSettings.get("interfaceNum") - 1;  // Adjusting for ComSci counting
+		}
+		else
+		{
+			Utils.consoleMessage("Please enter the ID of the device you wish to capture from:");
+			captureDevice = (systemInput.nextInt() - 1); // Adjusting for ComSci counting
+		}
 		
 		// Check if session detection was declared
 		if((Integer) Utils.programSettings.get("bSessionDetection") == -1)
