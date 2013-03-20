@@ -9,10 +9,7 @@
  *    list of conditions and the following disclaimer. 
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 3. By using this software, you agree to provide the Software Creator (Matthew
- *    Sullivan) exactly one drink of his choice under $10 USD in value if he
- *    requests it of you.
+ *    and/or other materials provided with the distribution.
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -100,7 +97,7 @@ public class Program
 				// Shall we create a graphical or non-graphical session?
 				if((Boolean) Utils.programSettings.get("bHeadless"))
 				{
-					CookieCadgerHeadless cookieCadgerHeadless = new CookieCadgerHeadless();
+					new CookieCadgerHeadless();
 				}
 				else
 				{

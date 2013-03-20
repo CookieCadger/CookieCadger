@@ -58,12 +58,6 @@ public class BrowserHandler
 			capabilities.setCapability(CapabilityType.PROXY, proxy);
 			
 			driver = new FirefoxDriver(capabilities);
-			
-			/* CHROME - not functional
-			DesiredCapabilities capabilities = DesiredCapabilities.chrome();
-			capabilities.setCapability("chrome.switches", Arrays.asList("--proxy-server=http://localhost:7878"));
-			WebDriver driver = new ChromeDriver(capabilities);
-			*/
 		}
 		else
 		{

@@ -1,7 +1,3 @@
-/*
- * First time in Java (+ Eclipse)... sorry for the mess!  M.S. 
- */
-
 package com.cookiecadger;
 
 import java.awt.Color;
@@ -22,7 +18,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 
-import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
@@ -55,6 +50,7 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.imageio.ImageIO;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -65,20 +61,10 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.io.File;
 import java.io.IOException;
-
-import org.browsermob.proxy.ProxyServer;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.Proxy;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.remote.CapabilityType;
-import org.openqa.selenium.remote.DesiredCapabilities;
 
 import com.cookiecadger.SortedListModel.SortOrder;
 
@@ -238,76 +224,70 @@ public class CookieCadgerFrame extends JFrame
 		loadingRequestProgressBar.setVisible(true);
         
 		Thread changeClientsListThread = new Thread(new Runnable()
-		{
+		{			 
 		     public void run()
-		     {
-        		boolean bPreviousSelection = false;
-        		String previousSelection = null;
-        		int recordCount = 0;
-        		
-        		if(!clientsList.isSelectionEmpty())
-        		{
-        			bPreviousSelection = true;
-        			previousSelection = ((EnhancedJListItem)clientsList.getSelectedValue()).toString();
-        		}
-        
-        		if(bClearListFirst)
-        		{
-        			clientsListModel.clear();
-        			clientsList.setModel(new EnhancedListModel());
-        		}
-        		
-        		try
-        		{
-        			String[] macAddresses = Utils.dbInstance.getMacs(((EnhancedJTextField)getComponentByName("txtClientSearch")).getText());
-        			for (String s : macAddresses)
-        			{
-        				// Update the GUI with progress
-        			    if (recordCount % 10 == 0)
-        			    {
-        			    	final int currentRecord = recordCount;
-
-        			    	SwingUtilities.invokeLater(new Runnable()
+		     {		    	
+				boolean bPreviousSelection = false;
+				String previousSelection = null;
+				int recordCount = 0;
+				
+				if(!clientsList.isSelectionEmpty())
+				{
+					bPreviousSelection = true;
+					previousSelection = ((EnhancedJListItem)clientsList.getSelectedValue()).toString();
+				}
+				
+				if(bClearListFirst)
+				{
+					clientsListModel.clear();
+				}
+				
+				try
+				{
+					String[] macAddresses = Utils.dbInstance.getMacs(((EnhancedJTextField)getComponentByName("txtClientSearch")).getText());
+					for (String s : macAddresses)
+					{
+						// Update the GUI with progress
+					    if (recordCount % 10 == 0)
+					    {
+					    	final int currentRecord = recordCount;
+				
+					    	SwingUtilities.invokeLater(new Runnable()
 							{
 							    public void run()
 							    {        			    	
 							    	loadingRequestProgressBar.setString("Loading client list, please wait... (" + currentRecord + " / " + clientCount + ")");
 							    }
 							});
-        			    }
-        			    recordCount++;
-
-        			    if(!clientsListModel.contains(s))
-        			    {
-        			    	int clientID = Utils.dbInstance.getIntegerValue("clients", "id", "mac_address", s);
-        			    	clientsListModel.addElement(new EnhancedJListItem(clientID, s, null));
-        			    }
-
-        			    updateDescriptionForMac(s);
-        			}
-        		}
-        		catch (SQLException e)
-        		{
-        			e.printStackTrace();
-        		}
-
-        		if(bClearListFirst)
-        		{
-        			clientsList.setModel(clientsListModel);
-        			
-            		if(bPreviousSelection)
-            		{
-            			// If the newly generated list still contains the previously selected value, show it
-            			if (clientsListModel.contains(previousSelection))
-            			{
-            				int index = clientsListModel.indexOf(previousSelection);
-            				clientsList.setSelectedValue(clientsListModel.getElementAt(index), true);
-            			}
-            		}
-        		}
-		    	
-                loadingRequestProgressBar.setVisible(false);
-                consoleScrollPane.setVisible(true);
+					    }
+					    recordCount++;
+				
+					    if(!clientsListModel.contains(s))
+					    {
+					    	int clientID = Utils.dbInstance.getIntegerValue("clients", "id", "mac_address", s);
+					    	clientsListModel.addElement(new EnhancedJListItem(clientID, s, null));
+					    }
+				
+					    updateDescriptionForMac(s);
+					}
+				}
+				catch (SQLException e)
+				{
+					e.printStackTrace();
+				}
+				
+				if(bClearListFirst && bPreviousSelection)
+				{
+					// If the newly generated list still contains the previously selected value, show it
+					if (clientsListModel.contains(previousSelection))
+					{
+						int index = clientsListModel.indexOf(previousSelection);
+						clientsList.setSelectedValue(clientsListModel.getElementAt(index), true);
+					}
+				}
+				
+				loadingRequestProgressBar.setVisible(false);
+				consoleScrollPane.setVisible(true);
             }
     	});
 		
@@ -315,7 +295,7 @@ public class CookieCadgerFrame extends JFrame
 	}
 	
 	private void changeDomainsList(String macAddress)
-	{
+	{		
 		boolean bPreviousSelection = false;
 		String previousSelection = null;
 		
@@ -353,7 +333,7 @@ public class CookieCadgerFrame extends JFrame
 	}
 	
 	private void changeRequestsList(String macAddress, String uriHost)
-	{
+	{		
 		boolean bPreviousSelection = false;
 		String previousSelection = null;
 
@@ -712,6 +692,7 @@ public class CookieCadgerFrame extends JFrame
 		
 		JMenuItem mntmSaveSession = null;
 		JMenuItem mntmLoadSession = null;
+		
 		if(!Utils.bUsingExternalDatabase)
 		{
 			mntmSaveSession = new JMenuItem("Save Dataset");
@@ -1686,6 +1667,7 @@ public class CookieCadgerFrame extends JFrame
         {
         	try
          	{
+        		// Bring in the initial GUI data from the DB
         		changeClientsList(false);
         		
 		    	if((Integer) Utils.programSettings.get("bSessionDetection") == 1)

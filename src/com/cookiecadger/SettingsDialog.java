@@ -8,7 +8,6 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
-import java.awt.Window.Type;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.JTabbedPane;
@@ -31,7 +30,7 @@ public class SettingsDialog extends JDialog {
 	private JTabbedPane tabbedPane;
 	private EnhancedJTextField txtTsharkPath;
 	private JTextField txtDatabaseHost, txtDatabaseUser, txtDatabaseName, txtDatabaseRefreshRate;
-	private JComboBox comboBrowser, comboSessionDetection, comboDatabaseEngine;
+	private JComboBox comboSessionDetection, comboDatabaseEngine;
 	private JCheckBox chckbxAllowUpdates, chckbxEnableDemoMode;
 	private JPasswordField txtDatabasePass;
 	private JLabel lblDatabaseHost, lblDatabaseUser, lblDatabasePass, lblDatabaseName, lblDatabaseRefreshRate;
@@ -69,9 +68,6 @@ public class SettingsDialog extends JDialog {
 				
 				Utils.savePreference("tsharkPath", txtTsharkPath.getText());
 				
-				String preferredBrowser = ((Utils.browserChoices)comboBrowser.getSelectedItem()).name().toLowerCase();
-				Utils.savePreference("preferredBrowser", preferredBrowser);
-				
 				String bSessionDetection = ((Utils.sessionDetectionChoices)comboSessionDetection.getSelectedItem()).name().toLowerCase();
 				if(bSessionDetection.equals("prompt"))
 					Utils.savePreference("bSessionDetection", -1);
@@ -106,15 +102,6 @@ public class SettingsDialog extends JDialog {
 		generalPanel.setLayout(null);
 		tabbedPane.addTab("General Settings", null, generalPanel, null);
 		
-		JLabel lblDefaultBrowser = new JLabel("Default browser:");
-		lblDefaultBrowser.setBounds(12, 60, 140, 15);
-		generalPanel.add(lblDefaultBrowser);
-		
-		comboBrowser = new JComboBox();
-		comboBrowser.setModel(new DefaultComboBoxModel(Utils.browserChoices.values()));
-		comboBrowser.setBounds(159, 56, 250, 24);
-		generalPanel.add(comboBrowser);
-		
 		JLabel lblPathTothsark = new JLabel("Path to 'tshark' binary:");
 		lblPathTothsark.setBounds(12, 6, 180, 15);
 		generalPanel.add(lblPathTothsark);
@@ -125,24 +112,24 @@ public class SettingsDialog extends JDialog {
 		txtTsharkPath.setColumns(10);
 		
 		JSeparator separator = new JSeparator();
-		separator.setBounds(0, 126, 434, 2);
+		separator.setBounds(0, 100, 434, 2);
 		generalPanel.add(separator);
 		
 		JLabel lblSessionDetection = new JLabel("Session detection:");
-		lblSessionDetection.setBounds(12, 96, 140, 15);
+		lblSessionDetection.setBounds(12, 60, 140, 15);
 		generalPanel.add(lblSessionDetection);
 		
 		comboSessionDetection = new JComboBox();
 		comboSessionDetection.setModel(new DefaultComboBoxModel(Utils.sessionDetectionChoices.values()));
-		comboSessionDetection.setBounds(159, 92, 250, 24);
+		comboSessionDetection.setBounds(159, 56, 250, 24);
 		generalPanel.add(comboSessionDetection);
 		
 		chckbxAllowUpdates = new JCheckBox("Allow automatic checking for software updates?");
-		chckbxAllowUpdates.setBounds(12, 136, 400, 23);
+		chckbxAllowUpdates.setBounds(12, 120, 400, 23);
 		generalPanel.add(chckbxAllowUpdates);
 		
 		chckbxEnableDemoMode = new JCheckBox("Enable 'demo mode' (requires session detection)");
-		chckbxEnableDemoMode.setBounds(12, 161, 400, 23);
+		chckbxEnableDemoMode.setBounds(12, 150, 400, 23);
 		generalPanel.add(chckbxEnableDemoMode);
 		
 		databasePanel = new JPanel();
@@ -252,17 +239,7 @@ public class SettingsDialog extends JDialog {
 		txtDatabasePass.setText(Utils.getPreference("databasePass", ""));
 		txtDatabaseName.setText(Utils.getPreference("databaseName", ""));
 		txtDatabaseRefreshRate.setText((Utils.getPreference("databaseRefreshRate", 15)).toString());
-		
-		// Look up browser preference and change combo
-		String preferredBrowser = Utils.getPreference("preferredBrowser", "firefox");
-		for (Utils.browserChoices enum_option : Utils.browserChoices.values())
-		{
-			if(enum_option.name().toLowerCase().equals(preferredBrowser.toLowerCase()))
-			{
-				comboBrowser.setSelectedItem(enum_option);
-				break;
-			}
-		}
+
 		
 		// Look up session detection and change combo
 		int bSessionDetection = Utils.getPreference("bSessionDetection", -1);

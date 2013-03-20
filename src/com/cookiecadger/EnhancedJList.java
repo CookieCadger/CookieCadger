@@ -5,6 +5,10 @@ import java.awt.Graphics;
 import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.Color;
+
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -14,9 +18,6 @@ import javax.swing.ListModel;
 import javax.swing.SwingWorker;
 import javax.swing.ToolTipManager;
 
-import java.awt.Color;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
 import java.util.ArrayList;
 
 /**
@@ -97,7 +98,7 @@ public class EnhancedJList extends JList
         	@Override            
             public Object doInBackground() {
                 try {
-                    Thread.sleep(10000);
+                    Thread.sleep(10000); // 10 seconds of highlighting
                 } catch (InterruptedException e) { /*Who cares*/ }
                 return null;
             }
@@ -173,7 +174,7 @@ public class EnhancedJList extends JList
 	    }
         catch (Exception e)
         {
-        	// Do nothing
+        	e.printStackTrace();
         }
     }
  

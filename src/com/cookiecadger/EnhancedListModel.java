@@ -1,5 +1,6 @@
 package com.cookiecadger;
 
+import java.util.ArrayList;
 import javax.swing.DefaultListModel;
 
 public class EnhancedListModel extends DefaultListModel

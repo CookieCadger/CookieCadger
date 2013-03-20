@@ -1,6 +1,6 @@
 package com.cookiecadger;
 
-import java.awt.Component;
+import java.sql.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URLDecoder;
-import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -20,13 +19,13 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 public class DatabaseHandler
 {
 	private Connection dbInstance;
-	private String executionPath;
+	private String userHomeDirectory;
 	private String dbEngine = null;
 	private String lastInsertIdFunction = null;
 	
 	public DatabaseHandler() throws Exception
 	{
-		executionPath = System.getProperty("user.dir").replace("\\", "/");
+		userHomeDirectory = System.getProperty("user.home").replace("\\", "/");
 		dbEngine = (String)Utils.programSettings.get("dbEngine");
 		
 		if(dbEngine.equals("mysql"))
@@ -47,12 +46,12 @@ public class DatabaseHandler
 			
 			lastInsertIdFunction = "last_insert_rowid()";			
 			Class.forName("org.sqlite.JDBC");
-			dbInstance = DriverManager.getConnection("jdbc:sqlite:" + executionPath + "/session.sqlite");
+			dbInstance = DriverManager.getConnection("jdbc:sqlite:" + userHomeDirectory + "/session.sqlite");
 			clearTables();
 		}
 		
 		// Cleans up the temporary DB on exit
-		File sessionDB = new File(executionPath + "/session.sqlite");
+		File sessionDB = new File(userHomeDirectory + "/session.sqlite");
 		sessionDB.deleteOnExit();
 		
 		initTables();
@@ -77,17 +76,18 @@ public class DatabaseHandler
 		
 		if(dbEngine.equals("sqlite"))
 		{
-		    stat.executeUpdate("create table requests (id INTEGER PRIMARY KEY, timerecorded INTEGER, uri VARCHAR, useragent VARCHAR, referer VARCHAR, cookies VARCHAR, authorization VARCHAR, auth_basic VARCHAR, description VARCHAR, domain_id INTEGER, client_id INTEGER);");
+		    stat.executeUpdate("create table requests (id INTEGER PRIMARY KEY, timerecorded INTEGER, uri TEXT, useragent TEXT, referer TEXT, cookies TEXT, authorization VARCHAR, auth_basic VARCHAR, description VARCHAR, domain_id INTEGER, client_id INTEGER);");
 		    stat.executeUpdate("create table clients (id INTEGER PRIMARY KEY, mac_address VARCHAR, ipv4_address VARCHAR, ipv6_address VARCHAR, netbios_hostname VARCHAR, mdns_hostname VARCHAR, has_http_requests INTEGER);");
 		    stat.executeUpdate("create table domains (id INTEGER PRIMARY KEY, name VARCHAR);");
-		    stat.executeUpdate("create table sessions (id INTEGER PRIMARY KEY, user_token VARCHAR, description VARCHAR, profile_photo_url VARCHAR, session_uri VARCHAR, request_id INTEGER);");	    	
+		    stat.executeUpdate("create table sessions (id INTEGER PRIMARY KEY, user_token VARCHAR, description VARCHAR, profile_photo_url TEXT, session_uri TEXT, request_id INTEGER);");	    	
 	    }
 	    else
 	    {
-		    stat.executeUpdate("create table if not exists requests (id INTEGER AUTO_INCREMENT PRIMARY KEY, timerecorded INTEGER, uri VARCHAR(4096), useragent VARCHAR(4096), referer VARCHAR(4096), cookies VARCHAR(4096), authorization VARCHAR(1024), auth_basic VARCHAR(1024), description VARCHAR(4096), domain_id INTEGER, client_id INTEGER);");
+	    	// MySQL
+		    stat.executeUpdate("create table if not exists requests (id INTEGER AUTO_INCREMENT PRIMARY KEY, timerecorded INTEGER, uri TEXT, useragent TEXT, referer TEXT, cookies TEXT, authorization VARCHAR(1024), auth_basic VARCHAR(1024), description VARCHAR(4096), domain_id INTEGER, client_id INTEGER);");
 		    stat.executeUpdate("create table if not exists clients (id INTEGER AUTO_INCREMENT PRIMARY KEY, mac_address VARCHAR(24), ipv4_address VARCHAR(16), ipv6_address VARCHAR(64), netbios_hostname VARCHAR(128), mdns_hostname VARCHAR(128), has_http_requests INTEGER);");
 		    stat.executeUpdate("create table if not exists domains (id INTEGER AUTO_INCREMENT PRIMARY KEY, name VARCHAR(1024));");
-		    stat.executeUpdate("create table if not exists sessions (id INTEGER AUTO_INCREMENT PRIMARY KEY, user_token VARCHAR(1024), description VARCHAR(512), profile_photo_url VARCHAR(4096), session_uri VARCHAR(4096), request_id INTEGER);");
+		    stat.executeUpdate("create table if not exists sessions (id INTEGER AUTO_INCREMENT PRIMARY KEY, user_token VARCHAR(1024), description VARCHAR(512), profile_photo_url TEXT, session_uri TEXT, request_id INTEGER);");
 	    }
 		
 	    stat.close();
@@ -505,7 +505,7 @@ public class DatabaseHandler
             {
             	fileToSaveTo = new File(fileToSaveTo.getPath() + ".sqlite");
             }
-            File fileToSaveFrom = new File(executionPath + "/session.sqlite");
+            File fileToSaveFrom = new File(userHomeDirectory + "/session.sqlite");
             
             try {
 				copy(fileToSaveFrom, fileToSaveTo);
@@ -515,7 +515,7 @@ public class DatabaseHandler
 			}
         }
 	}
-	
+
 	public void openDatabase()
 	{	
 		JFileChooser fc = new JFileChooser();
@@ -528,7 +528,7 @@ public class DatabaseHandler
         if (returnVal == JFileChooser.APPROVE_OPTION)
         {
         	File fileToSaveFrom = fc.getSelectedFile();
-            File fileToSaveTo = new File(executionPath + "/session.sqlite");
+            File fileToSaveTo = new File(userHomeDirectory + "/session.sqlite");
             
             try {
 				copy(fileToSaveFrom, fileToSaveTo);
