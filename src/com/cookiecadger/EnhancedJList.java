@@ -151,9 +151,13 @@ public class EnhancedJList extends JList
 	                g.setColor( rowColors[i&1] );
 	                g.fillRect( x, y, w, rowHeight );
 	            }
-	            // Use last row height for remainder of list area
-	            nRows    = nItems + (insets.top + h - y) / rowHeight;
-	            startRow = nItems;
+	            
+	            if(rowHeight > 0)
+	            {
+	            	// Use last row height for remainder of list area
+	            	nRows    = nItems + (insets.top + h - y) / rowHeight;
+	            	startRow = nItems;
+	            }
 	        }
 	        for ( int i = startRow; i < nRows; i++, y+=rowHeight )
 	        {
@@ -202,23 +206,33 @@ public class EnhancedJList extends JList
             }
             
             // Yes, we must highlight this
-            String strVal = ((EnhancedJListItem)value).toString();
-
-            if(highlightStrings.contains(strVal))
+            if(value != null)
             {
-            	int colorIndex = highlightStrings.indexOf(strVal);
-            	c.setForeground(highlightColors.get(colorIndex));
-        	}
-            else
-            {
-            	c.setForeground(Color.BLACK);
-            }
-
-            if(((EnhancedJListItem)value).hasThumbnail())
-            {
-            	JLabel itemLabel = (JLabel)c;
-            	ImageIcon icon = new ImageIcon(((EnhancedJListItem)value).getThumbnail());
-            	itemLabel.setIcon(icon);
+            	try
+            	{
+		            String strVal = ((EnhancedJListItem)value).toString();
+		
+		            if(highlightStrings.contains(strVal))
+		            {
+		            	int colorIndex = highlightStrings.indexOf(strVal);
+		            	c.setForeground(highlightColors.get(colorIndex));
+		        	}
+		            else
+		            {
+		            	c.setForeground(Color.BLACK);
+		            }
+		            
+		            if(((EnhancedJListItem)value).hasThumbnail())
+		            {
+		            	JLabel itemLabel = (JLabel)c;
+		            	ImageIcon icon = new ImageIcon(((EnhancedJListItem)value).getThumbnail());
+		            	itemLabel.setIcon(icon);
+		            }
+            	}
+            	catch (Exception ex)
+            	{
+            		ex.printStackTrace();
+            	}
             }
             
             return c;

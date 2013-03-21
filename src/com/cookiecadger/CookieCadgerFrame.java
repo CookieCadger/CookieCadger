@@ -299,7 +299,7 @@ public class CookieCadgerFrame extends JFrame
 		boolean bPreviousSelection = false;
 		String previousSelection = null;
 		
-		if(!domainsList.isSelectionEmpty())
+		if(!domainsList.isSelectionEmpty() && ((EnhancedJListItem)domainsList.getSelectedValue()).getID() != -1) // Not empty and not all domains
 		{
 			bPreviousSelection = true;
 			previousSelection = ((EnhancedJListItem)domainsList.getSelectedValue()).toString();
@@ -1150,7 +1150,7 @@ public class CookieCadgerFrame extends JFrame
 		
 		JButton btnModifyReplay = new JButton("Modify & Replay Request");
 		btnModifyReplay.setFont(new Font("Dialog", Font.BOLD, 10));
-		btnModifyReplay.setBounds(691, 342, 175, 25);
+		btnModifyReplay.setBounds(691, 342, 176, 25);
 		requestsPanel.add(btnModifyReplay);
 		
 		txtClientSearch = new EnhancedJTextField();

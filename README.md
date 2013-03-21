@@ -8,6 +8,40 @@ https://cookiecadger.com
 https://github.com/sullivanmatt/CookieCadger
 
 ----------------------------------------------
+Requirements
+----------------------------------------------
+
+1. Java 7
+2. The Wireshark Suite (must include the 'tshark' binary)
+3. An up-to-date version of Mozilla Firefox
+4. Cookie Cadger has optional support for saving data to a MySQL database.  A MySQL installation is required for this feature.
+
+----------------------------------------------
+Installation & Operation
+----------------------------------------------
+
+1. Download the Cookie Cookie Cadger package from https://cookiecadger.com and extract
+2. Run the Cookie Cadger JAR file by double-clicking it, or invoke from command line with java -jar CookieCadger.jar
+3. For session detection to work properly, plugins must be placed in the "plugins" directory. This directory must be in the same folder as the Cookie Cadger JAR file.
+
+----------------------------------------------
+Example Usage & Command-line Options
+----------------------------------------------
+java -jar CookieCadger.jar
+* --tshark=/usr/sbin/tshark
+* --headless=on
+* --interfacenum=2 (requires --headless=on)
+* --detection=on
+* --demo=on
+* --update=on
+* --dbengine=mysql (default is 'sqlite' for local, file-based storage)
+* --dbhost=localhost (requires --dbengine=mysql)
+* --dbuser=user (requires --dbengine=mysql)
+* --dbpass=pass (requires --dbengine=mysql)
+* --dbname=cadgerdata (requires --dbengine=mysql)
+* --dbrefreshrate=15 (in seconds, requires --dbengine=mysql, requires --headless=off)
+
+----------------------------------------------
 Support
 ----------------------------------------------
 
