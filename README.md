@@ -25,7 +25,7 @@ Installation & Operation
 3. For session detection to work properly, plugins must be placed in the "plugins" directory. This directory must be in the same folder as the Cookie Cadger JAR file.
 
 ----------------------------------------------
-Example Usage & Command-line Options
+Example Usage & Supported Program Arguments
 ----------------------------------------------
 java -jar CookieCadger.jar
 * --tshark=/usr/sbin/tshark
