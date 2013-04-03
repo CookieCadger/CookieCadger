@@ -33,6 +33,7 @@ public class EnhancedJList extends JList
     public EnhancedJList( )
     {
     	ToolTipManager.sharedInstance().setInitialDelay(0);
+    	ToolTipManager.sharedInstance().setDismissDelay(60000); // Don't allow to disappear for a minute
     	
     	// Attach a mouse motion adapter to let us know the mouse is over an item and to show the tip.
     	addMouseMotionListener( new MouseMotionAdapter()
@@ -170,16 +171,16 @@ public class EnhancedJList extends JList
 	            g.setColor( rowColors[nRows&1] );
 	            g.fillRect( x, y, w, remainder );
 	        }
-	        
-	        // Paint component
-	        setOpaque( false );
-	        super.paintComponent( g );
-	        setOpaque( true );
 	    }
         catch (Exception e)
         {
         	e.printStackTrace();
         }
+
+        // Paint component
+        setOpaque( false );
+        super.paintComponent( g );
+        setOpaque( true );
     }
  
     /** Wrap a cell renderer to add zebra stripes behind list cells. */

@@ -7,6 +7,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLConnection;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -19,6 +22,8 @@ import javax.script.ScriptException;
 import javax.swing.JCheckBox;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
+
+import org.apache.commons.io.FileUtils;
 
 
 public class CaptureHandler
@@ -123,7 +128,7 @@ public class CaptureHandler
 						
 						// When Cookie Cadger creates requests it appends a randomization
 						// to the Accept header. Check for it and ignore if matched.
-						if(accept.contains(", " + Integer.toString(Utils.getLocalRandomization())))
+						if(accept.contains(";" + Integer.toString(Utils.getLocalRandomization())))
 						{
 							continue;
 						}
@@ -480,7 +485,7 @@ public class CaptureHandler
 	}
 	
 	private int handleClient(String macAddress)
-	{
+	{		
 		try
 		{
 			if(Utils.dbInstance.containsValue("clients", "mac_address", macAddress))
@@ -489,6 +494,11 @@ public class CaptureHandler
 			}
 			else
 			{
+				if(Utils.cookieCadgerFrame == null)
+				{
+					Utils.consoleMessage("New client: " + macAddress);
+				}
+				
 				return Utils.dbInstance.createClient(macAddress);
 			}
 		}
@@ -623,10 +633,61 @@ public class CaptureHandler
 	
 	private void loadPlugins()
 	{
+		// Always check for plugins updates, if allowed
+		if((Boolean) Utils.programSettings.get("bCheckForUpdates"))
+		{
+	    	//SwingWorker<?, ?> updateWorker = new SwingWorker<Object, Object>() {            
+	        //	@Override            
+	        //    public Object doInBackground()
+	        //	{
+	        		try
+	        		{
+	        			// Get the plugins ZIP file
+	        			String userTempDirectory = System.getProperty("java.io.tmpdir").replace("\\", "/");
+	        			File pluginsFile = new File(userTempDirectory + "/plugins.zip");
+
+	        			String UrlString = "https://www.cookiecadger.com/files/plugins.zip";
+	        			HttpURLConnection httpConnection = (HttpURLConnection) new URL(UrlString).openConnection();
+	        			httpConnection.setRequestMethod("GET");
+	        				
+	        			httpConnection.setRequestProperty ("Content-Type", "application/octet-stream");
+	        			httpConnection.setRequestProperty ("User-Agent", "Cookie Cadger, " + Utils.version);
+	        			FileUtils.copyInputStreamToFile(httpConnection.getInputStream(), pluginsFile);
+	        			
+	        			try
+	        			{
+	        				// Clean out existing plugins
+	        				FileUtils.cleanDirectory(new File(userTempDirectory + "/plugins"));
+	        			}
+	        			catch (Exception e)
+	        			{
+	        				// Doesn't exist yet, don't worry about it
+	        			}
+	        			
+	        			// Unzip
+	        			Utils.unZipFile(pluginsFile.getAbsolutePath(), userTempDirectory + "/plugins");
+	        			
+	        			// Delete ZIP
+	        			pluginsFile.delete();
+					}
+	        		catch (Exception e)
+	        		{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	        		
+	                //return null;
+	            //}
+	        //};
+	        //updateWorker.execute();
+		}
+		
         // Load all plugin classes
         try
         {
-			File folder = new File(Utils.executionPath + "/plugins/");
+        	String userTempDirectory = System.getProperty("java.io.tmpdir").replace("\\", "/");
+        	
+			File folder = new File(userTempDirectory + "/plugins/");
 			File[] listOfFiles = folder.listFiles();
 			 
 			for (int i = 0; i < listOfFiles.length && listOfFiles[i].isFile(); i++)
@@ -634,7 +695,7 @@ public class CaptureHandler
 				String pluginClassFilename = listOfFiles[i].getName();
 				if (pluginClassFilename.toLowerCase().endsWith(".js"))
 				{					
-					sessionDetectors.add(Utils.executionPath + "/plugins/" + pluginClassFilename);
+					sessionDetectors.add(userTempDirectory + "/plugins/" + pluginClassFilename);
 				}
 			}
         }

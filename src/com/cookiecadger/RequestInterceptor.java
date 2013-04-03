@@ -18,13 +18,13 @@ public class RequestInterceptor implements HttpRequestInterceptor
 	
     public void process(HttpRequest request, HttpContext context) throws HttpException, IOException
     {        
-        if(cookies != null)
+        if(cookies != null && cookies.length() > 0)
         {
         	request.removeHeaders("Cookie");
         	request.addHeader("Cookie", cookies);
         }
         
-        if(referer != null)
+        if(referer != null && referer.length() > 0)
         {
         	request.removeHeaders("Referer");
         	request.removeHeaders("Referrer");
@@ -34,13 +34,13 @@ public class RequestInterceptor implements HttpRequestInterceptor
         	setReferer(null);
         }
         
-        if(useragent != null)
+        if(useragent != null && useragent.length() > 0)
         {
         	request.removeHeaders("User-Agent");
         	request.addHeader("User-Agent", useragent);
         }
         
-        if(authorization != null)
+        if(authorization != null && authorization.length() > 0)
         {
         	request.removeHeaders("Authorization");
         	request.addHeader("Authorization", authorization);

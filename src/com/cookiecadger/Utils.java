@@ -5,7 +5,11 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
@@ -17,6 +21,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.prefs.Preferences;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import javax.swing.JOptionPane;
 
@@ -149,7 +155,8 @@ public class Utils
 			}
 			else
 			{
-				Utils.consoleMessage("Database failed to initalize!");
+				Utils.consoleMessage("\n\nDatabase failed to initalize, Cookie Cadger is unable to load.\nException information is shown above.");
+				System.exit(1);
 			}
 		}
 	}
@@ -161,8 +168,13 @@ public class Utils
 	
 	public static void displayAboutWindow()
 	{
-		JOptionPane.showMessageDialog(null, "Cookie Cadger (v"+ version +")\n\n" +
+		JOptionPane.showMessageDialog(null, "Cookie Cadger (v"+ version +", https://cookiecadger.com)\n\n" +
 				"Copyright (c) 2013, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>\n" +
+				"\n" +
+				"Additional portions generously contributed by:\n" +
+				" - Ben Holland <https://github.com/benjholla>\n" +
+				" - Justin Kaufman <akaritakai@gmail.com>\n" +
+				"\n" +
 				"All rights reserved.\n" +
 				"\n" +
 				"Redistribution and use in source and binary forms, with or without\n" +
@@ -173,9 +185,6 @@ public class Utils
 				"2. Redistributions in binary form must reproduce the above copyright notice,\n" +
 				"   this list of conditions and the following disclaimer in the documentation\n" +
 				"   and/or other materials provided with the distribution. \n" +
-				"3. By using this software, you agree to provide the Software Creator (Matthew\n" +
-				"   Sullivan) exactly one drink of his choice under $10 USD in value if he\n" +
-				"   requests it of you.\n" +
 				"\n" +
 				"THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND\n" +
 				"ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED\n" +
@@ -253,7 +262,7 @@ public class Utils
 		}
 		
 		try {
-			String[] fields = new String[] { "timerecorded", "useragent", "referer", "auth_basic", "cookies", "uri" };
+			String[] fields = new String[] { "timerecorded", "useragent", "referer", "auth_basic", "cookies", "uri", "domain_id", "client_id" };
 			HashMap<String,String> resultMap = Utils.dbInstance.getStringValue("requests", fields, "id", Integer.toString(requestID));
 			
 			String timeRecorded = resultMap.get("timerecorded");
@@ -262,6 +271,10 @@ public class Utils
 			String authBasic = resultMap.get("auth_basic");
 			String cookies = resultMap.get("cookies");
 			String uri = resultMap.get("uri");
+			int domainID = new Integer(resultMap.get("domain_id"));
+			String domain = Utils.dbInstance.getStringValue("domains", "name", "id", Integer.toString(domainID));
+			int clientID = new Integer(resultMap.get("client_id"));
+			String macAddress = Utils.dbInstance.getStringValue("clients", "mac_address", "id", Integer.toString(clientID));
 			
 			long timeStamp = new Long(timeRecorded);
 			Date then = new Date((long)timeStamp * 1000);
@@ -271,6 +284,8 @@ public class Utils
 				uri = uri.substring(0, 86) + boldOpen + " ..." + boldClose;
 			 
 			String notesTxt = htmlOpen + fontOpen + boldOpen + "Date: " + boldClose + dateString;
+			notesTxt = notesTxt + newLine + boldOpen + "Client MAC: " + boldClose + macAddress;
+			notesTxt = notesTxt + newLine + boldOpen + "Domain: " + boldClose + domain;
 			notesTxt = notesTxt + newLine + boldOpen + "Uri: " + boldClose + uri;
 
 			
@@ -604,4 +619,55 @@ public class Utils
     	g.dispose();
     	return scaledBI;
     }
+	
+	// Thanks, http://www.mkyong.com/java/how-to-decompress-files-from-a-zip-file/
+	public static void unZipFile(String zipFile, String outputFolder)
+	{    
+		byte[] buffer = new byte[1024];
+
+	    try
+	    {
+	        //create output directory is not exists
+	        File folder = new File(outputFolder);
+	        if(!folder.exists())
+	        {
+	            folder.mkdir();
+	        }
+	        
+	        //get the zip file content
+	        ZipInputStream zis =
+	        new ZipInputStream(new FileInputStream(zipFile));
+	        //get the zipped file list entry
+	        ZipEntry ze = zis.getNextEntry();
+	        
+	        while(ze!=null)
+	        {
+	            String fileName = ze.getName();
+	            File newFile = new File(outputFolder + File.separator + fileName);
+	            
+	            //create all non exists folders
+	            //else you will hit FileNotFoundException for compressed folder
+	            new File(newFile.getParent()).mkdirs();
+	            
+	            FileOutputStream fos = new FileOutputStream(newFile);
+	            
+	            int len;
+	            while ((len = zis.read(buffer)) > 0)
+	            {
+	                fos.write(buffer, 0, len);
+	            }
+	            
+	            fos.close();
+	            ze = zis.getNextEntry();
+	        }
+	        
+	        zis.closeEntry();
+	        zis.close();
+	        
+        }
+	    catch(IOException ex)
+        {
+	    	ex.printStackTrace();
+	    }
+	}
 }

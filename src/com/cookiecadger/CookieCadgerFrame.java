@@ -62,6 +62,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.io.File;
 import java.io.IOException;
@@ -80,7 +81,7 @@ public class CookieCadgerFrame extends JFrame
 	private JTabbedPane tabbedPane;
 	public JProgressBar loadingRequestProgressBar;
 	private HashMap<String, Component> componentMap; // Cheers to Jesse Strickland (stackoverflow.com/questions/4958600/get-a-swing-component-by-name)
-	private JPopupMenu clientsPopup, requestsPopup, sessionsPopup;
+	private JPopupMenu clientsPopup, domainsPopup, requestsPopup, sessionsPopup;
 	private CaptureHandler captureHandler;
 
 	public void addConsoleText(String text)
@@ -495,11 +496,11 @@ public class CookieCadgerFrame extends JFrame
 		if(clientsListModel.contains(macAddress))
 		{
 			int location = clientsListModel.indexOf(macAddress);
-			((EnhancedJListItem)clientsListModel.getElementAt(location)).setDescription(generateDescriptionForMac(macAddress, true));
+			((EnhancedJListItem)clientsListModel.getElementAt(location)).setDescription(generateDescriptionForClient(macAddress, true));
 		}
 	}
 	
-	private String generateDescriptionForMac(String macAddress, boolean bUseHTML)
+	private String generateDescriptionForClient(String macAddress, boolean bUseHTML)
 	{
 		String htmlOpen = "";
 		String boldOpen = "";
@@ -724,6 +725,7 @@ public class CookieCadgerFrame extends JFrame
 		
 		JMenuItem mntmAbout = new JMenuItem("About Cookie Cadger");
 		mnHelp.add(mntmAbout);
+
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -990,11 +992,50 @@ public class CookieCadgerFrame extends JFrame
 				}
 			}
 		});
+		domainsList.addMouseListener(new MouseAdapter()
+	    {
+	    	public void mouseClicked(MouseEvent me)
+	    	{
+	            if (SwingUtilities.isRightMouseButton(me))
+	            {	                
+	                Point mousePosition = me.getPoint();
+	                int index = domainsList.locationToIndex(me.getPoint());
+        			Rectangle cellRect = domainsList.getCellBounds(index, index);
+        			
+        			// If point inside rectangle
+        			if(mousePosition.x >= cellRect.getMinX() && mousePosition.x < cellRect.getMaxX() && mousePosition.y >= cellRect.getMinY() && mousePosition.y < cellRect.getMaxY())
+        			{
+    	            	// If right-clicked item is not currently selected, do that
+    	            	if( index != domainsList.getSelectedIndex())
+    	            		domainsList.setSelectedIndex(index);
+    	            	
+    	            	domainsPopup.show(domainsList, me.getX(), me.getY());
+        			}
+	            }
+	    	}
+	    });
 		
 		domainListScrollPane.setViewportView(domainsList);
 		SortedListModel domainListModelSorted = new SortedListModel(domainsListModel);
 		domainListModelSorted.setSortOrder(SortOrder.ASCENDING);
 		domainsList.setModel(domainListModelSorted);
+		
+		domainsPopup = new JPopupMenu();
+		
+		JMenuItem copyDomainInfoMenuItem = new JMenuItem("Copy Domain Information");
+		copyDomainInfoMenuItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(!domainsList.isSelectionEmpty())
+				{
+					Toolkit toolkit = Toolkit.getDefaultToolkit();
+					Clipboard clipboard = toolkit.getSystemClipboard();
+					String domain = ((EnhancedJListItem)domainsList.getSelectedValue()).toString();
+					StringSelection strSel = new StringSelection(domain);
+					clipboard.setContents(strSel, null);
+				}
+			}
+		});
+		domainsPopup.add(copyDomainInfoMenuItem);
 		
 		JScrollPane requestListScrollPanel = new JScrollPane();
 		requestListScrollPanel.setBounds(386, 32, 482, 306);
@@ -1018,7 +1059,7 @@ public class CookieCadgerFrame extends JFrame
 					Toolkit toolkit = Toolkit.getDefaultToolkit();
 					Clipboard clipboard = toolkit.getSystemClipboard();
 					String macAddress = ((EnhancedJListItem)clientsList.getSelectedValue()).toString();
-					StringSelection strSel = new StringSelection(generateDescriptionForMac(macAddress, false));
+					StringSelection strSel = new StringSelection(generateDescriptionForClient(macAddress, false));
 					clipboard.setContents(strSel, null);
 				}
 			}
@@ -1617,18 +1658,29 @@ public class CookieCadgerFrame extends JFrame
 	        		try {
 	        			JLabel lblSoftwareUpdateAvailable = ((JLabel)getComponentByName("lblSoftwareUpdateAvailable"));
 
-	        			InetAddress ip = InetAddress.getLocalHost(); // Get an active IP
-	        	        NetworkInterface network = NetworkInterface.getByInetAddress(ip); // and match to Mac Address
-	        	        byte[] mac = network.getHardwareAddress();
-	        	        MessageDigest shaOfMacAddress = MessageDigest.getInstance("SHA-512");
-	        	        byte[] macAddressHash = shaOfMacAddress.digest(mac);
-
-	        	        StringBuffer macAddressHashStringBuilder = new StringBuffer();
-	        	        for (int i = 0; i < macAddressHash.length; i++)
-	        	        {
-	        	        	macAddressHashStringBuilder.append(Integer.toString((macAddressHash[i] & 0xff) + 0x100, 16).substring(1));
-	        	        }
-	        	        String macAddressHashString = macAddressHashStringBuilder.toString();
+	        			String macAddressHashString;
+	        			try
+	        			{
+		        			InetAddress ip = InetAddress.getLocalHost(); // Get an active IP	        			
+		        	        NetworkInterface network = NetworkInterface.getByInetAddress(ip); // and match to Mac Address
+		        	        byte[] mac = network.getHardwareAddress();
+		        	        
+			        	    MessageDigest shaOfMacAddress = MessageDigest.getInstance("SHA-512");
+			        	    byte[] macAddressHash = shaOfMacAddress.digest(mac);
+	
+		        	        StringBuffer macAddressHashStringBuilder = new StringBuffer();
+		        	        for (int i = 0; i < macAddressHash.length; i++)
+		        	        {
+		        	        	macAddressHashStringBuilder.append(Integer.toString((macAddressHash[i] & 0xff) + 0x100, 16).substring(1));
+		        	        }
+		        	        macAddressHashString = macAddressHashStringBuilder.toString();
+	        			}
+	        			catch (Exception ex)
+	        			{
+	        				// Something weird happened, just reset the MAC hash to blank and move on
+	        				macAddressHashString = "";
+	        			}
+	        			
 						String releasedVersion = Utils.readUrl("https://www.cookiecadger.com/update/?update=" + Utils.version + "; " + System.getProperty("os.name") + "; " + System.getProperty("os.version") + "; " + System.getProperty("os.arch") + "; " + macAddressHashString, "Cookie Cadger, " + Utils.version, "text/html", null);
 						
 						if(releasedVersion.length() > 0 && releasedVersion.contains("Cookie Cadger")) // String has stuff in it? Display.

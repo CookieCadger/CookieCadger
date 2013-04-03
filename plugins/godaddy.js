@@ -18,9 +18,8 @@ function processRequest(host, uri, userAgent, accept, cookies)
 
 		if(pageContent.indexOf('My Account') != -1)
 		{
-			// definite session
-			// can't get username it appears to be populated using javascript to the element <span id="pct_sn"></span>
-			description = "<html><font size=5>GoDaddy (Domain Registrar)</font><br>" + "Unknown User";
+			// Definite session, but can't grab a user name.
+			description = "<html><font size=5>Go Daddy</font><br>" + "Unknown User";
 		}
 	}
 }
