@@ -636,50 +636,41 @@ public class CaptureHandler
 		// Always check for plugins updates, if allowed
 		if((Boolean) Utils.programSettings.get("bCheckForUpdates"))
 		{
-	    	//SwingWorker<?, ?> updateWorker = new SwingWorker<Object, Object>() {            
-	        //	@Override            
-	        //    public Object doInBackground()
-	        //	{
-	        		try
-	        		{
-	        			// Get the plugins ZIP file
-	        			String userTempDirectory = System.getProperty("java.io.tmpdir").replace("\\", "/");
-	        			File pluginsFile = new File(userTempDirectory + "/plugins.zip");
+    		try
+    		{
+    			// Get the plugins ZIP file
+    			String userTempDirectory = System.getProperty("java.io.tmpdir").replace("\\", "/");
+    			File pluginsFile = new File(userTempDirectory + "/plugins.zip");
 
-	        			String UrlString = "https://www.cookiecadger.com/files/plugins.zip";
-	        			HttpURLConnection httpConnection = (HttpURLConnection) new URL(UrlString).openConnection();
-	        			httpConnection.setRequestMethod("GET");
-	        				
-	        			httpConnection.setRequestProperty ("Content-Type", "application/octet-stream");
-	        			httpConnection.setRequestProperty ("User-Agent", "Cookie Cadger, " + Utils.version);
-	        			FileUtils.copyInputStreamToFile(httpConnection.getInputStream(), pluginsFile);
-	        			
-	        			try
-	        			{
-	        				// Clean out existing plugins
-	        				FileUtils.cleanDirectory(new File(userTempDirectory + "/plugins"));
-	        			}
-	        			catch (Exception e)
-	        			{
-	        				// Doesn't exist yet, don't worry about it
-	        			}
-	        			
-	        			// Unzip
-	        			Utils.unZipFile(pluginsFile.getAbsolutePath(), userTempDirectory + "/plugins");
-	        			
-	        			// Delete ZIP
-	        			pluginsFile.delete();
-					}
-	        		catch (Exception e)
-	        		{
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-	        		
-	                //return null;
-	            //}
-	        //};
-	        //updateWorker.execute();
+    			String UrlString = "https://www.cookiecadger.com/files/plugins.zip";
+    			HttpURLConnection httpConnection = (HttpURLConnection) new URL(UrlString).openConnection();
+    			httpConnection.setRequestMethod("GET");
+    				
+    			httpConnection.setRequestProperty ("Content-Type", "application/octet-stream");
+    			httpConnection.setRequestProperty ("User-Agent", "Cookie Cadger, " + Utils.version);
+    			FileUtils.copyInputStreamToFile(httpConnection.getInputStream(), pluginsFile);
+    			
+    			try
+    			{
+    				// Clean out existing plugins
+    				FileUtils.cleanDirectory(new File(userTempDirectory + "/plugins"));
+    			}
+    			catch (Exception e)
+    			{
+    				// Doesn't exist yet, don't worry about it
+    			}
+    			
+    			// Unzip
+    			Utils.unZipFile(pluginsFile.getAbsolutePath(), userTempDirectory + "/plugins");
+    			
+    			// Delete ZIP
+    			pluginsFile.delete();
+			}
+    		catch (Exception e)
+    		{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
         // Load all plugin classes
