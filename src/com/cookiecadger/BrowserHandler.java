@@ -32,16 +32,19 @@ public class BrowserHandler
 	        try {
 				server.start();
 				server.addRequestInterceptor(requestIntercept);
-				proxy = server.seleniumProxy(); // Set HTTP proxy
-				proxy.setSslProxy(null); // Unset SSL entirely
+
+				proxy = new Proxy();
+				proxy.setHttpProxy("127.0.0.1:7878"); // Set browser to localhost proxy
 
 			} catch (Exception e) {
 				e.printStackTrace();
 			}	
 		}
 
-		// Ask to get page title
-		// If none, this will Exception and set driver to null as necessary
+		// Ask to get page title.
+		// If none, this will Exception and set driver to null as necessary.
+		// We do this as a (hackish) check to see if the browser is still open
+		// from a previous replay, or if the user already closed it and needs a new one. 
 		try
 		{
 			driver.getTitle();

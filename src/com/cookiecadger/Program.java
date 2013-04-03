@@ -39,11 +39,11 @@ public class Program
 	 * Launch the application.
 	 */
 	public static void main(final String[] args)
-	{		
+	{
 		// Mac menu bar support. Huge thanks to Mike Angstadt for putting this
 		// code out there for use.
 		// http://code.google.com/p/evolutionchamber/issues/detail?id=102
-		MacSupport.initIfMac("Cookie Cadger", false, null, new MacHandler()
+		MacSupport.initIfMac("Cookie Cadger", false, "/resource/cookiecadger.png", new MacHandler()
 		{
 			@Override
 			public void handleQuit(Object applicationEvent)
