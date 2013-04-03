@@ -677,9 +677,12 @@ public class CaptureHandler
         try
         {
         	String userTempDirectory = System.getProperty("java.io.tmpdir").replace("\\", "/");
+        	File folder;
+        	File[] listOfFiles;
         	
-			File folder = new File(userTempDirectory + "/plugins/");
-			File[] listOfFiles = folder.listFiles();
+        	// Look for plugins recently extracted in the temporary location
+			folder = new File(userTempDirectory + "/plugins/");
+			listOfFiles = folder.listFiles();
 			 
 			for (int i = 0; i < listOfFiles.length && listOfFiles[i].isFile(); i++)
 			{ 
@@ -687,6 +690,19 @@ public class CaptureHandler
 				if (pluginClassFilename.toLowerCase().endsWith(".js"))
 				{					
 					sessionDetectors.add(userTempDirectory + "/plugins/" + pluginClassFilename);
+				}
+			}
+			
+			// Look for plugins in the directory on the same level as Cookie Cadger
+			folder = new File(Utils.executionPath + "/plugins/");
+			listOfFiles = folder.listFiles();
+			 
+			for (int i = 0; i < listOfFiles.length && listOfFiles[i].isFile(); i++)
+			{ 
+				String pluginClassFilename = listOfFiles[i].getName();
+				if (pluginClassFilename.toLowerCase().endsWith(".js"))
+				{					
+					sessionDetectors.add(Utils.executionPath + "/plugins/" + pluginClassFilename);
 				}
 			}
         }
