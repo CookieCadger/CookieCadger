@@ -21,8 +21,7 @@ Installation & Operation
 ----------------------------------------------
 
 1. Download the Cookie Cookie Cadger package from https://cookiecadger.com and extract
-2. Run the Cookie Cadger JAR file by double-clicking it, or invoke from command line with java -jar CookieCadger.jar
-3. For session detection to work properly, plugins must be placed in the "plugins" directory. This directory must be in the same folder as the Cookie Cadger JAR file.
+2. Run the Cookie Cadger JAR file by double-clicking it, or invoke from command line with java -jar CookieCadger.jar  
 
 ----------------------------------------------
 Example Usage & Supported Program Arguments
