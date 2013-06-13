@@ -53,7 +53,7 @@ public class CaptureHandler
 		{			
 			Utils.consoleMessage("Opening '" + deviceName.get(ethDevNumber) + "' for traffic capture.");
 			pb = new ProcessBuilder(new String[] { (String) Utils.programSettings.get("tsharkPath"), "-i", deviceName.get(ethDevNumber), "-f", "tcp dst port 80 or udp src port 5353 or udp src port 138", "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
-			pb.redirectErrorStream(true);
+			//pb.redirectErrorStream(true); // Wireshark 1.10.0 adds garbage to error stream, not usable anymore
 			deviceCaptureProcess.set(ethDevNumber, pb.start());
 			pw = new ProcessWatcher(deviceCaptureProcess.get(ethDevNumber));
 			is = deviceCaptureProcess.get(ethDevNumber).getInputStream();
@@ -62,7 +62,7 @@ public class CaptureHandler
 		{
 			Utils.consoleMessage("Opening '" + pcapFile + "' for traffic capture.");
 			pb = new ProcessBuilder(new String[] { (String) Utils.programSettings.get("tsharkPath"), "-r", pcapFile, "-T", "fields", "-e", "eth.src", "-e", "wlan.sa", "-e", "ip.src", "-e", "ipv6.src", "-e", "tcp.srcport", "-e", "tcp.dstport", "-e", "udp.srcport", "-e", "udp.dstport", "-e", "browser.command", "-e", "browser.server", "-e", "dns.resp.name", "-e", "http.host", "-e", "http.request.uri", "-e", "http.accept", "-e", "http.accept_encoding", "-e", "http.user_agent", "-e", "http.referer", "-e", "http.cookie", "-e", "http.authorization", "-e", "http.authbasic" } );
-			pb.redirectErrorStream(true);
+			//pb.redirectErrorStream(true); // Wireshark 1.10.0 adds garbage to error stream, not usable anymore
 			proc = pb.start();
 			pw = new ProcessWatcher(proc);
 			is = proc.getInputStream();
