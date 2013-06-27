@@ -210,7 +210,7 @@ public class Utils
 	        	urlConn.setRequestProperty("Cookie", cookies);
 	        
 	        urlConn.setRequestProperty("User-Agent", userAgent);
-	        urlConn.setRequestProperty("Accept", accept + ", " + Integer.toString(localRandomization));
+	        urlConn.setRequestProperty("Accept", accept + ";" + Integer.toString(localRandomization));
 	        
 	        reader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
 	        StringBuffer buffer = new StringBuffer();
