@@ -11,8 +11,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -22,7 +20,6 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Random;
-import java.util.Scanner;
 import java.util.prefs.Preferences;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -31,7 +28,7 @@ import javax.swing.JOptionPane;
 
 public class Utils
 {
-	public static final String version = "1.07";
+	public static final String version = "1.06";
 	public static String executionPath = System.getProperty("user.dir").replace("\\", "/");
 	public static HashMap<String, Object> programSettings;
 	private static Preferences prefs = null;
@@ -204,50 +201,6 @@ public class Utils
 	
 	public static String readUrl(String urlString, String userAgent, String accept, String cookies) throws Exception
 	{
-		//=============
-		/*
-        URL url = new URL(urlString);
-        URLConnection urlConn = url.openConnection();
-        
-        if(cookies != null && !cookies.isEmpty())
-        	urlConn.setRequestProperty("Cookie", cookies);
-        
-        urlConn.setRequestProperty("User-Agent", userAgent);
-        urlConn.setRequestProperty("Accept", accept + ";" + Integer.toString(localRandomization));
-
-        String result = null;
-        try
-        {
-        	Scanner sc = new Scanner(urlConn.getInputStream(), "UTF-8").useDelimiter("\\A");
-        	
-        	if ( urlConn instanceof HttpURLConnection)
-        	{
-        	   HttpURLConnection httpConnection = (HttpURLConnection) urlConn;
-
-        	   int code = httpConnection.getResponseCode();
-
-        	   Utils.consoleMessage(code + " | " + urlString);
-        	}
-        	else
-        	{
-        	   System.err.println ("error - not a http request!");
-        	}
-
-        	result = sc.next();
-        	sc.close();
-        }
-        catch(Exception ex)
-        {
-        	ex.printStackTrace();
-        	System.out.println(urlString);
-        	System.out.println(cookies);
-        }
-        
-		return result;
-		
-		*/
-		//==========
-		/*
 	    BufferedReader reader = null;
 	    try {
 	        URL url = new URL(urlString);
@@ -268,16 +221,13 @@ public class Utils
 
 	        return buffer.toString();
 	    } catch (FileNotFoundException ex) {
-	    	ex.printStackTrace();
-	    } catch (IOException ex) {
-	    	ex.printStackTrace();
+	    	// Nothing
 	    } finally {
 	        if (reader != null)
 	            reader.close();
 	    }
 	    
 	    return "";
-	    */
 	}
 	
 	public static void consoleMessage(String text)
@@ -720,26 +670,4 @@ public class Utils
 	    	ex.printStackTrace();
 	    }
 	}
-	
-    private static int minimum(int a, int b, int c) {
-        return Math.min(Math.min(a, b), c);
-    }
-
-    public static int computeLevenshteinDistance(CharSequence str1, CharSequence str2) {
-    	int[][] distance = new int[str1.length() + 1][str2.length() + 1];
-
-        for (int i = 0; i <= str1.length(); i++)
-                distance[i][0] = i;
-        for (int j = 1; j <= str2.length(); j++)
-                distance[0][j] = j;
-
-        for (int i = 1; i <= str1.length(); i++)
-                for (int j = 1; j <= str2.length(); j++)
-                        distance[i][j] = minimum(
-                                        distance[i - 1][j] + 1,
-                                        distance[i][j - 1] + 1,
-                                        distance[i - 1][j - 1]
-                                                        + ((str1.charAt(i - 1) == str2.charAt(j - 1)) ? 0 : 1));
-        return distance[str1.length()][str2.length()];
-    }
 }
