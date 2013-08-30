@@ -59,7 +59,7 @@
         <antcall target="build"/>
     </target>
     <target name="Program">
-        <java classname="cookie.cadger.mattslifebytes.com.Program" failonerror="true" fork="yes">
+        <java classname="com.cookiecadger.Program" failonerror="true" fork="yes">
             <classpath refid="run.Program.classpath"/>
             <bootclasspath>
                 <path refid="run.Program.bootclasspath"/>
