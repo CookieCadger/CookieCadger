@@ -48,11 +48,11 @@ public class DatabaseHandler
 			Class.forName("org.sqlite.JDBC");
 			dbInstance = DriverManager.getConnection("jdbc:sqlite:" + userHomeDirectory + "/session.sqlite");
 			clearTables();
+			
+			// Cleans up the temporary DB on exit
+			File sessionDB = new File(userHomeDirectory + "/session.sqlite");
+			sessionDB.deleteOnExit();
 		}
-		
-		// Cleans up the temporary DB on exit
-		File sessionDB = new File(userHomeDirectory + "/session.sqlite");
-		sessionDB.deleteOnExit();
 		
 		initTables();
 	}
@@ -308,10 +308,8 @@ public class DatabaseHandler
 	
 	public String[] getMacs(String searchString) throws SQLException
 	{
-		String criteria = "1";
+		String criteria = "has_http_requests = 1";
 		boolean bHasMacSearch = false;
-		
-		criteria = "has_http_requests = 1";
 		
 		if(searchString != null && searchString.length() > 0)
 		{
@@ -427,7 +425,7 @@ public class DatabaseHandler
 	public int getClientCount() throws SQLException
 	{
 		Statement stat = dbInstance.createStatement();
-	    ResultSet rs = stat.executeQuery("select count(id) as num_clients from clients where 1;");
+	    ResultSet rs = stat.executeQuery("select count(id) as num_clients from clients where has_http_requests = 1;");
 
 	    rs.next();
 	    int numClients = rs.getInt("num_clients");
