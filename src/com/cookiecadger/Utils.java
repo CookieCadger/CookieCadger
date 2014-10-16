@@ -28,7 +28,7 @@ import javax.swing.JOptionPane;
 
 public class Utils
 {
-	public static final String version = "1.07";
+	public static final String version = "1.08";
 	public static String executionPath = System.getProperty("user.dir").replace("\\", "/");
 	public static HashMap<String, Object> programSettings;
 	private static Preferences prefs = null;

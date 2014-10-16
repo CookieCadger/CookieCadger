@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>
+ * Copyright (c) 2014, Matthew Sullivan <MattsLifeBytes.com / @MattsLifeBytes>
  * 
  * Additional portions generously contributed by:
  * - Ben Holland <https://github.com/benjholla>

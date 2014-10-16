@@ -14,7 +14,7 @@
         <pathelement location="bin"/>
         <pathelement location="dependencies/jetty-util-7.3.0.v20110203.jar"/>
         <pathelement location="dependencies/sqlite-jdbc-3.7.2.jar"/>
-        <pathelement location="dependencies/selenium-server-standalone-2.40.0.jar"/>
+        <pathelement location="dependencies/selenium-server-standalone-2.43.1.jar"/>
         <pathelement location="dependencies/mysql-connector-java-5.1.24-bin.jar"/>
         <pathelement location="dependencies/browsermob-proxy-2.0-beta-6.jar"/>
     </path>
